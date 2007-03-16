@@ -1,6 +1,7 @@
 {-
  - maketea -- generate C++ AST infrastructure
  - (C) 2006-2007 Edsko de Vries and John Gilbert
+ - License: GNU General Public License 2.0
  -}
 
 module GrammarAnalysis where
@@ -179,21 +180,11 @@ usedAbstractSymbols
 		f _ = Nothing
 
 {-
- - Inheritance graph
+ - Root of the inheritance graph
  -}
 
-inheritanceGraph :: [Rule Disj] -> MakeTeaMonad (Gr (Some Symbol) ()) 
-inheritanceGraph rs = do
-	labels <- withSymbols $ \ss -> return [(s,no) | s <- ss | no <- [1..]]
-	let 
-		labelFor s = case lookup s labels of Just l -> l
-		nodes = map (\(a,b) -> (b,a)) labels
-		edges = concatMap edgesFor rs
-		edgesFor :: Rule Disj -> [LEdge ()]
-		edgesFor (Disj nt body) =
-			let lr = labelFor (Exists nt) 
-			in [(lr,labelFor s,()) | s <- body] 
-	return (mkGraph nodes edges)
+rootSymbol :: MakeTeaMonad (Some Symbol)
+rootSymbol = withTopological $ return . head
 
 {-
  - Find the name of stuff

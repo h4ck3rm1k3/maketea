@@ -1,6 +1,7 @@
 {-
  - maketea -- generate C++ AST infrastructure
  - (C) 2006-2007 Edsko de Vries and John Gilbert
+ - License: GNU General Public License 2.0
  -}
 
 module Util where
@@ -17,6 +18,18 @@ elim f (Exists t) = f t
 
 elim2 :: (forall a b. t a -> t b -> c) -> Some t -> Some t -> c
 elim2 f (Exists t) (Exists t') = f t t'
+
+{-
+ - Search monad
+ -}
+
+data Search a = Found Bool a
+
+instance Monad Search where
+	return a = Found False a
+	-- m a -> (a -> m b) -> m b
+	(Found found a) >>= f = case f a of
+		Found found' b -> Found (found || found') b
 
 {-
  - Various

@@ -1,6 +1,7 @@
 {-
  - maketea -- generate C++ AST infrastructure
  - (C) 2006-2007 Edsko de Vries and John Gilbert
+ - License: GNU General Public License 2.0
  -}
 
 module VisitorAPI where
@@ -139,12 +140,11 @@ termToVisitor (Term _ s m)
 -- If we have efficiency issues, this would be a good place to start :-)
 ppChain :: String -> Bool -> Some Symbol -> MakeTeaMonad Member
 ppChain pp rev s = do
-	ihgraph <- withDisj inheritanceGraph
-	let topological = topsort' ihgraph
+	top <- withTopological return 
 	cn <- toClassName s
 	sc <- allSuperclasses [s]
 	let sc_ordered 
-		= (if rev then reverse else id) $ filter (`elem` sc) topological
+		= (if rev then reverse else id) $ filter (`elem` sc) top
 	let decl = ("void", pp ++ toVarName s ++ "_chain")
 	let args = [(cn ++ "*", "in")]
 	return $ defMethod decl args (map (\s -> pp ++ toVarName s ++ "(in);") sc_ordered)

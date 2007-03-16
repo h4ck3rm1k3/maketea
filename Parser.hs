@@ -1,6 +1,7 @@
 {-
  - maketea -- generate C++ AST infrastructure
  - (C) 2006-2007 Edsko de Vries and John Gilbert
+ - License: GNU General Public License 2.0
  -}
 
 module Parser where

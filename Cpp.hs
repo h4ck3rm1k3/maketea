@@ -1,6 +1,7 @@
 {-
  - maketea -- generate C++ AST infrastructure
  - (C) 2006-2007 Edsko de Vries and John Gilbert
+ - License: GNU General Public License 2.0
  -}
 
 module Cpp where
@@ -36,6 +37,7 @@ emptyClass n = do
 		, sections = [Section [] Private [getID]]
 		, classid = cid
 		, friends = []
+		, origin = Nothing
 		}
 
 emptyAbstractClass :: Name Class -> Class
@@ -46,6 +48,7 @@ emptyAbstractClass n = Class {
 		, sections = [Section [] Private [getID]]
 		, classid = 0
 		, friends = []
+		, origin = Nothing
 		}
 	where
 		getID = PureVirtual [] ("int", "classid") []
@@ -58,6 +61,7 @@ emptyClassNoID n = Class {
 		, sections = []
 		, classid = 0
 		, friends = []
+		, origin = Nothing
 		}
 
 findClassID :: Some Symbol -> MakeTeaMonad Integer
@@ -166,3 +170,16 @@ mapMethods f cls =
 		mapSection (Section c a ms) = do
 			ms' <- mapM f ms
 			return $ Section c a ms'
+
+{-
+ - Search for a method in a class
+ -}
+
+hasMethod :: Name Method -> Class -> Bool
+hasMethod name cls = case mapMethods f cls of
+		Found found _ -> found
+	where
+		f :: Member -> Search Member
+		f m 
+			| nameOf m == name = (Found True m)
+			| otherwise = return m

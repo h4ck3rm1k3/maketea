@@ -1,6 +1,7 @@
 {-
  - maketea -- generate C++ AST infrastructure
  - (C) 2006-2007 Edsko de Vries and John Gilbert
+ - License: GNU General Public License 2.0
  -}
 
 module MakeTeaMonad where
@@ -8,9 +9,12 @@ module MakeTeaMonad where
 import Control.Monad.State
 import Data.Maybe
 import Data.List
+import qualified Data.Graph.Inductive as FGL
+import Debug.Trace
 
 import DataStructures
 import Util
+import PrettyPrinter
 
 {-
  - Convenient access to components of the maketea state
@@ -20,18 +24,10 @@ withGrammar :: (Grammar -> MakeTeaMonad a) -> MakeTeaMonad a
 withGrammar f = get >>= f . grammar 
 
 withConj :: ([Rule Conj] -> MakeTeaMonad a) -> MakeTeaMonad a
-withConj f = withGrammar $ f . catMaybes . map (elim conj) 
-	where
-		conj :: Rule a -> Maybe (Rule Conj)
-		conj r@(Conj _ _) = Just r
-		conj (Disj _ _) = Nothing
+withConj f = withGrammar $ f . conjunctions 
 
 withDisj :: ([Rule Disj] -> MakeTeaMonad a) -> MakeTeaMonad a
-withDisj f = withGrammar $ f . catMaybes . map (elim disj)
-	where
-		disj :: Rule a -> Maybe (Rule Disj)
-		disj (Conj _ _) = Nothing
-		disj r@(Disj _ _) = Just r
+withDisj f = withGrammar $ f . disjunctions 
 
 withTokens :: ([Symbol Terminal] -> MakeTeaMonad a) -> MakeTeaMonad a
 withTokens f = withGrammar $ f . allTokens 
@@ -49,10 +45,10 @@ withPrefix :: (String -> MakeTeaMonad a) -> MakeTeaMonad a
 withPrefix f = get >>= f . prefix
 
 withSymbols :: ([Some Symbol] -> MakeTeaMonad a) -> MakeTeaMonad a
-withSymbols f = do
-	nts <- withGrammar $ return . map (Exists . elim ruleHead)
-	ts <- withTokens $ return . (map Exists)
-	f (nts ++ ts)
+withSymbols f = withGrammar $ f . allSymbols
+
+withTopological :: ([Some Symbol] -> MakeTeaMonad a) -> MakeTeaMonad a
+withTopological f = get >>= f . topological
 
 getNextClassID :: MakeTeaMonad Integer
 getNextClassID = do
@@ -71,14 +67,42 @@ setClasses cs = do
 	s <- get
 	put (s { classes = Just cs })
 
+{-
+ - Initial state for the monad
+ -}
+
 initState :: String -> Grammar -> MakeTeaState
-initState pr gr = MTS {
-	  prefix = pr
-	, grammar = gr
-	, nextClassID = 1 
-	, contexts = Nothing
-	, classes = Nothing
-	}
+initState pr gr = 
+	if null unreachable 
+	then MTS {
+		  prefix = pr
+		, grammar = gr
+		, nextClassID = 1 
+		, contexts = Nothing
+		, classes = Nothing
+		, inheritanceGraph = ih 
+		, topological = FGL.topsort' ih 
+		}
+	else error $ "The inheritance hierarchy does not have a unique root.\nThe following nodes are unreachable from " ++ show (fromJust (FGL.lab ih (head top))) ++ ": " ++ show (map (fromJust . FGL.lab ih) unreachable)
+	where
+		ih = findInheritanceGraph gr
+		top = FGL.topsort ih
+		reachable = FGL.bfs (head top) ih
+		unreachable = FGL.nodes ih \\ reachable
+		
+
+findInheritanceGraph :: Grammar -> FGL.Gr (Some Symbol) () 
+findInheritanceGraph grammar = 
+	let 
+		labels = [(s,no) | s <- allSymbols grammar | no <- [1..]]
+		labelFor s = fromJust (lookup s labels)
+		nodes = map (\(a,b) -> (b,a)) labels
+		edges = concatMap edgesFor (disjunctions grammar) 
+		edgesFor (Disj nt body) =
+			let lr = labelFor (Exists nt) 
+			in [(lr,labelFor s,()) | s <- body] 
+	in 
+		(FGL.mkGraph nodes edges)
 
 {-
  - Filtering
@@ -117,3 +141,23 @@ nonMarkers = catMaybes . map (elim f)
 ruleHead :: Rule a -> Symbol NonTerminal 
 ruleHead (Disj h _) = h
 ruleHead (Conj h _) = h
+
+disjunctions :: Grammar -> [Rule Disj]
+disjunctions = catMaybes . map (elim disj)
+	where
+		disj :: Rule a -> Maybe (Rule Disj)
+		disj (Conj _ _) = Nothing
+		disj r@(Disj _ _) = Just r
+
+conjunctions :: Grammar -> [Rule Conj]
+conjunctions = catMaybes . map (elim conj) 
+	where
+		conj :: Rule a -> Maybe (Rule Conj)
+		conj r@(Conj _ _) = Just r
+		conj (Disj _ _) = Nothing
+
+allSymbols :: Grammar -> [Some Symbol]
+allSymbols gr = nts ++ ts 
+	where
+		nts = map (Exists . elim ruleHead) gr
+		ts = map Exists (allTokens gr)

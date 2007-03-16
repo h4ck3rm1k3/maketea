@@ -1,12 +1,14 @@
 {-
  - maketea -- generate C++ AST infrastructure
  - (C) 2006-2007 Edsko de Vries and John Gilbert
+ - License: GNU General Public License 2.0
  -}
 
 module DataStructures where
 
 import Control.Monad.State
 import Util
+import qualified Data.Graph.Inductive as FGL
 
 {-
  - Definition of EBNF
@@ -80,6 +82,7 @@ data Class = Class {
 	, sections :: [Section]
 	, classid :: Integer
 	, friends :: [Name Class]
+	, origin :: Maybe (Either (Some Rule) (Symbol Terminal))
 	}
 data Section = Section Comment Access [Member]
 data Access = Private | Protected | Public
@@ -115,4 +118,6 @@ data MakeTeaState = MTS {
 	, nextClassID :: Integer
 	, contexts :: Maybe [Context]
 	, classes :: Maybe [Class]
+	, inheritanceGraph :: FGL.Gr (Some Symbol) ()
+	, topological :: [Some Symbol]
 	}

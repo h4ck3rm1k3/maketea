@@ -1,6 +1,7 @@
 {-
  - maketea -- generate C++ AST infrastructure
  - (C) 2006-2007 Edsko de Vries and John Gilbert
+ - License: GNU General Public License 2.0
  -}
 
 module Main where
@@ -20,6 +21,7 @@ import VisitorAPI
 import PrettyPrinter
 import Mixin
 import Init
+import PatternMatching
 
 main :: IO ()
 main = do
@@ -42,14 +44,15 @@ runMakeTea prefix grammar includes mixinCode = do
 		maketea = do
 			contextResolution
 			createBasicClasses
-			mixedIn <- withClasses $ mixin mixinCode
-			setClasses (orderClasses . map addInit $ mixedIn)
+			addMixin mixinCode
+			addPatternMatching
+			addInit
 			-- Extract relevant components
 			contexts <- withContexts return
 			classes <- withClasses return
 			transform <- transformClass
 			visitor <- visitorClass
-			return (contexts, classes, transform, visitor)
+			return (contexts, orderClasses classes, transform, visitor)
 		init = initState (prefix ++ "_") grammar
 		runMaketea = evalState maketea init
 		(contexts, classes, transform, visitor) = runMaketea

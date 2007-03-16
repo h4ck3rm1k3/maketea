@@ -1,6 +1,7 @@
 {-
  - maketea -- generate C++ AST infrastructure
  - (C) 2006-2007 Edsko de Vries and John Gilbert
+ - License: GNU General Public License 2.0
  -}
 
 module Mixin where
@@ -9,6 +10,11 @@ import Data.List
 
 import DataStructures
 import MakeTeaMonad
+
+addMixin :: [Class] -> MakeTeaMonad ()
+addMixin mixinCode = do
+	cs <- withClasses (mixin mixinCode)
+	setClasses cs
 
 mixin :: [Class] -> [Class] -> MakeTeaMonad [Class]
 mixin mixinCode = mapM (mixinClass mixinCode) 
@@ -28,4 +34,5 @@ combineClasses c c' = Class {
 		, sections = sections c ++ sections c'
 		, classid = classid c
 		, friends = friends c ++ friends c'
+		, origin = origin c
 		}
