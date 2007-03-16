@@ -19,7 +19,7 @@ createBasicClasses = do
 	setClasses (ast_classes ++ token_classes) 
 
 createClass :: Rule a -> MakeTeaMonad Class
-createClass (Disj c _) = do
+createClass r@(Disj c _) = do
 	inh <- directSuperclasses (Exists c)
 	cn <- toClassName c
 	inhn <- mapM (toClassName . NonTerminal) inh
@@ -28,6 +28,7 @@ createClass (Disj c _) = do
 	return $ c { 
 		  extends = inhn 
 		, friends = [prefix ++ "transform", prefix ++ "visitor"]
+		, origin = Just (Left (Exists r))
 		}
 createClass r@(Conj c body) = do
 	inh <- directSuperclasses (Exists c)
@@ -43,6 +44,7 @@ createClass r@(Conj c body) = do
 		  extends = inhn
 		, sections = [constrSection, fieldSection] ++ sections c 
 		, friends = [prefix ++ "transform", prefix ++ "visitor"]
+		, origin = Just (Left (Exists r))
 		}
 
 createFieldDecl :: Term a -> MakeTeaMonad (Decl Variable) 
@@ -86,6 +88,7 @@ createTokenClass t@(Terminal n ctype) = do
 	return $ c {
 		  extends = inhn
 		, friends = [prefix ++ "transform", prefix ++ "visitor"]
-		, sections = sections c ++ [fieldSection, constrSection] 
-}
+		, sections = sections c ++ [fieldSection, constrSection]
+		, origin = Just (Right t)
+		}
 		

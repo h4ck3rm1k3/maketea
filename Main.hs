@@ -52,10 +52,11 @@ runMakeTea prefix grammar includes mixinCode = do
 			classes <- withClasses return
 			transform <- transformClass
 			visitor <- visitorClass
-			return (contexts, orderClasses classes, transform, visitor)
+			wildcard <- wildcardClass
+			return (contexts, orderClasses classes, transform, visitor, wildcard)
 		init = initState (prefix ++ "_") grammar
 		runMaketea = evalState maketea init
-		(contexts, classes, transform, visitor) = runMaketea
+		(contexts, classes, transform, visitor, wildcard) = runMaketea
 		commonHeader = unlines $ includes ++ [
 			  "#include <list>"
 			, "using namespace std;"
@@ -67,7 +68,8 @@ runMakeTea prefix grammar includes mixinCode = do
 		commonHeader ++
 		unlines (map (\c -> "class " ++ c ++ ";") (map name classes)) ++
 		"\n" ++
-		unlines (map showClassHeader classes) 
+		unlines (map showClassHeader classes) ++
+		unlines wildcard
 	writeFile (prefix ++ ".cpp") $
 		"#include \"" ++ prefix ++ ".h\"\n\n" ++ 
 		unlines (map showClassImplementation classes)
