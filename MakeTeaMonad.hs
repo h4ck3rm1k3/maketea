@@ -72,9 +72,11 @@ setClasses cs = do
  -}
 
 initState :: String -> Grammar -> MakeTeaState
-initState pr gr = 
-	if null unreachable 
-	then MTS {
+initState pr gr 
+	| not (null unreachable) = error $ "The inheritance hierarchy does not have a unique root.\nThe following nodes are unreachable from " ++ show (fromJust (FGL.lab ih (head top))) ++ ": " ++ show (map (fromJust . FGL.lab ih) unreachable)
+	| FGL.hasLoop ih = error $ "There are self-referential rules in some of: " ++ show (map (map (fromJust . FGL.lab ih)) (FGL.scc ih))
+	| FGL.hasLoop (FGL.trc ih) = error $ "The inheritance graph is cyclic.\nCycles: " ++ show ((map (map (fromJust . FGL.lab ih)) . filter ((> 1) . length)) (FGL.scc ih))
+	| otherwise = trace (show ih) MTS {
 		  prefix = pr
 		, grammar = gr
 		, nextClassID = 1 
@@ -83,7 +85,6 @@ initState pr gr =
 		, inheritanceGraph = ih 
 		, topological = FGL.topsort' ih 
 		}
-	else error $ "The inheritance hierarchy does not have a unique root.\nThe following nodes are unreachable from " ++ show (fromJust (FGL.lab ih (head top))) ++ ": " ++ show (map (fromJust . FGL.lab ih) unreachable)
 	where
 		ih = findInheritanceGraph gr
 		top = FGL.topsort ih
