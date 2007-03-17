@@ -125,10 +125,31 @@ addMatchT t@(Terminal _ ctype) cls = do
 		, "\treturn true;"
 		]
 	let match = case ctype of
-		Nothing -> defMethod decl args (matchHeader ++ matchBody "value")
-		Just _ -> defMethod decl args (matchHeader ++ matchBody "source_rep")
+		Nothing -> defMethod decl args (
+			   matchHeader 
+			++ matchBody "value"
+			)
+		Just "" -> defMethod decl args (
+			   matchHeader 
+			++ matchBody "source_rep"
+			)
+		Just _ -> defMethod decl args (
+			   matchHeader
+			++ [
+			  "if(!match_value(that))"
+			, "\treturn false;"
+			, ""
+			]
+			++ matchBody "source_rep"
+			)
+	let match_value = defMethod ("bool", "match_value") [(name cls ++ "*", "that")] ["return true;"]
+	let methods = case ctype of
+		Just t@(_:_) | not (hasMethod "match_value" cls) -> 
+			[match,match_value]
+		_ -> 
+			[match]
 	return $ cls {
-		  sections = sections cls ++ [Section [] Public [match]]
+		  sections = sections cls ++ [Section [] Public methods]
 		}
 
 wildcardClass :: MakeTeaMonad Body

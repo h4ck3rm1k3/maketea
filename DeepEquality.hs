@@ -19,7 +19,7 @@ addDeepEquality =
 		setClasses cs
 	where
 		f cls 
-			| hasMethod "deep_equals" cls = return cls
+			| hasMethod "equals" cls = return cls
 			| otherwise = case origin cls of
 				Nothing -> return cls
 				Just (Left r) -> elim addEqualR r cls
@@ -29,7 +29,7 @@ addEqualR :: Rule a -> Class -> MakeTeaMonad Class
 addEqualR (Disj _ _) cls = do
 	root <- rootSymbol
 	rootCn <- toClassName root
-	let decl = ("bool", "deep_equals")
+	let decl = ("bool", "equals")
 	let args = [(rootCn ++ "*", "in")]
 	let match = PureVirtual [] decl args 
 	return $ cls { 
@@ -38,7 +38,7 @@ addEqualR (Disj _ _) cls = do
 addEqualR (Conj _ body) cls = do
 	root <- rootSymbol
 	rootCn <- toClassName root
-	let decl = ("bool", "deep_equals")
+	let decl = ("bool", "equals")
 	let args = [(rootCn ++ "*", "in")]
 	equalTerms <- concatMapM (elim equalTerm) body 
 	let equal = defMethod decl args $ [
@@ -68,7 +68,7 @@ equalTerm t@(Term _ _ m) | not (isVector m) = do
 		, "\tif(this->" ++ vn ++ " != NULL || that->" ++ vn ++ " != NULL)"
 		, "\t\treturn false;"
 		, "}"
-		, "else if(!this->" ++ vn ++ "->deep_equals(that->" ++ vn ++ "))" 
+		, "else if(!this->" ++ vn ++ "->equals(that->" ++ vn ++ "))" 
 		, "\treturn false;"
 		, ""
 		]
@@ -94,7 +94,7 @@ equalTerm t@(Term _ _ m) | isVector m = do
 		, "\t\t\tif(*i != NULL || *j != NULL)"
 		, "\t\t\t\treturn false;"
 		, "\t\t}"
-		, "\t\telse if(!(*i)->deep_equals(*j))"
+		, "\t\telse if(!(*i)->equals(*j))"
 		, "\t\t\treturn false;"
 		, "\t}"
 		, "\tif(i != this->" ++ vn ++ "->end() || j != that->" ++ vn ++ "->end())"
@@ -107,15 +107,14 @@ addEqualT :: Symbol Terminal -> Class -> MakeTeaMonad Class
 addEqualT t@(Terminal _ ctype) cls = do
 	root <- rootSymbol
 	rootCn <- toClassName root
-	let decl = ("bool", "deep_equals")
+	let decl = ("bool", "equals")
 	let args = [(rootCn ++ "*", "in")]
 	let equalHeader = [
 		  name cls ++ "* that = dynamic_cast<" ++ name cls ++ "*>(in);"
 		, "if(that == NULL) return false;"
 		, ""
 		]
-	let equalBody isP vn 
-		| isP = [ 
+	let equalBody vn = [ 
 		  "if(this->" ++ vn ++ " == NULL || that->" ++ vn ++ " == NULL)"
 		, "{"
 		, "\tif(this->" ++ vn ++ " != NULL || that->" ++ vn ++ " != NULL)"
@@ -125,28 +124,36 @@ addEqualT t@(Terminal _ ctype) cls = do
 		, "\treturn false;"
 		, ""
 		]
-		| not isP = [ 
-		  "if(this->" ++ vn ++ " != that->" ++ vn ++ ")"
-		, "\treturn false;"
-		, ""
-		]
 	let equal = case ctype of
 		Nothing -> defMethod decl args (
 			   equalHeader 
-			++ equalBody True "value"
+			++ equalBody "value"
 			++ ["return true;"]
 			)
 		Just "" -> defMethod decl args (
 			   equalHeader 
-			++ equalBody True "source_rep"
+			++ equalBody "source_rep"
 			++ ["return true;"]
 			)
 		Just t -> defMethod decl args (
 			   equalHeader 
-			++ equalBody (isPointer t) "value"
-			++ equalBody True "source_rep"
+			++ [
+			  "if(!equals_value(that))"
+			, "\treturn false;"
+			, ""
+			]
+			++ equalBody "source_rep"
 			++ ["return true;"]
 			)
+	let equals_value_body isP 
+		| isP = "return (*this->value == *that->value);"
+		| not isP = "return (this->value == that->value);"
+	let equals_value isP = defMethod ("bool", "equals_value") [(name cls ++ "*", "that")] [equals_value_body isP]
+	let methods = case ctype of
+		Just t@(_:_) | not (hasMethod "equals_value" cls) -> 
+			[equal,equals_value (isPointer t)]
+		_ -> 
+			[equal]
 	return $ cls {
-		  sections = sections cls ++ [Section [] Public [equal]]
+		  sections = sections cls ++ [Section [] Public methods]
 		}
