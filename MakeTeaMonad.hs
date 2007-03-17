@@ -10,7 +10,6 @@ import Control.Monad.State
 import Data.Maybe
 import Data.List
 import qualified Data.Graph.Inductive as FGL
-import Debug.Trace
 
 import DataStructures
 import Util
@@ -75,8 +74,8 @@ initState :: String -> Grammar -> MakeTeaState
 initState pr gr 
 	| not (null unreachable) = error $ "The inheritance hierarchy does not have a unique root.\nThe following nodes are unreachable from " ++ show (fromJust (FGL.lab ih (head top))) ++ ": " ++ show (map (fromJust . FGL.lab ih) unreachable)
 	| FGL.hasLoop ih = error $ "There are self-referential rules in some of: " ++ show (map (map (fromJust . FGL.lab ih)) (FGL.scc ih))
-	| FGL.hasLoop (FGL.trc ih) = error $ "The inheritance graph is cyclic.\nCycles: " ++ show ((map (map (fromJust . FGL.lab ih)) . filter ((> 1) . length)) (FGL.scc ih))
-	| otherwise = trace (show ih) MTS {
+	| not (null cycles) = error $ "The inheritance graph is cyclic.\nCycles: " ++ show (map (map (fromJust . FGL.lab ih)) cycles)
+	| otherwise = MTS {
 		  prefix = pr
 		, grammar = gr
 		, nextClassID = 1 
@@ -90,7 +89,7 @@ initState pr gr
 		top = FGL.topsort ih
 		reachable = FGL.bfs (head top) ih
 		unreachable = FGL.nodes ih \\ reachable
-		
+		cycles = filter ((> 1) . length) (FGL.scc (FGL.trc ih))
 
 findInheritanceGraph :: Grammar -> FGL.Gr (Some Symbol) () 
 findInheritanceGraph grammar = 
