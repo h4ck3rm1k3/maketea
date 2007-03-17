@@ -70,7 +70,7 @@ expr ::=
    | method_invocation | new | clone
 	| literal ;
 	
-literal ::= INT<int> | REAL<double> | STRING<String*> | BOOL<bool> | NULL<> ;
+literal ::= INT<int> | REAL<double> | STRING<string*> | BOOL<bool> | NULL<> ;
    
 assignment ::= variable is_ref:"&"? expr ;
 
@@ -135,7 +135,7 @@ identifier ::=
 {-
 	Extra attributes and methods
 -}
-
+{-
 #include <iostream>
 #include <sstream>
 #include <iomanip>
@@ -593,3 +593,4 @@ public:
 		attrs->set("phc.unparser.is_elseif", new Boolean(false));
 	}
 };
+-}

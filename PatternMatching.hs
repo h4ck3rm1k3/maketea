@@ -26,7 +26,15 @@ addPatternMatching =
 				Just (Right t) -> addMatchT t cls	
 
 addMatchR :: Rule a -> Class -> MakeTeaMonad Class
-addMatchR (Disj _ _) cls = return cls
+addMatchR (Disj _ _) cls = do
+	root <- rootSymbol
+	rootCn <- toClassName root
+	let decl = ("bool", "match")
+	let args = [(rootCn ++ "*", "in")]
+	let match = PureVirtual [] decl args 
+	return $ cls { 
+		  sections = sections cls ++ [Section [] Public [match]]
+		}
 addMatchR (Conj _ body) cls = do
 	root <- rootSymbol
 	rootCn <- toClassName root
@@ -69,12 +77,7 @@ matchTerm t@(Term _ _ m) | isVector m = do
 	let vn = toVarName t
 	cn <- toClassName t
 	return [
-		  "if(this->" ++ vn ++ " == NULL)"
-		, "{"
-		, "\tif(that->" ++ vn ++ " != NULL && !that->" ++ vn ++ "->match(this->" ++ vn ++ "))"
-		, "\t\treturn false;"
-		, "}"
-		, "else"
+		  "if(this->" ++ vn ++ " != NULL && that->" ++ vn ++ " != NULL)"
 		, "{"
 		, "\t" ++ cn ++ "::const_iterator i, j;"
 		, "\tfor("
@@ -116,33 +119,10 @@ addMatchT t@(Terminal _ ctype) cls = do
 		, ""
 		]
 	let matchBody var = [ 
-		-- We do the check for the joker here rather than relying on String* to
-		-- implement match
-		  "Joker<String>* joker_str;"
-		, ""
-		, "joker_str = dynamic_cast<Joker<String>*>(this->" ++ var ++ ");"
-		, "if(joker_str != NULL)"
-		, "{"
-		, "\tjoker_str->value = that->" ++ var ++ ";"
-		, "\treturn true;"
-		, "}"
-		, ""
-		, "joker_str = dynamic_cast<Joker<String>*>(that->" ++ var ++ ");"
-		, "if(joker_str != NULL)"
-		, "{"
-		, "\tjoker_str->value = this->" ++ var ++ ";"
-		, "\treturn true;"
-		, "}"
-		, ""
-		, "if(this->" ++ var ++ " == NULL || that->" ++ var ++ " == NULL)"
-		, "{"
-		, "\tif(this->" ++ var ++ " == NULL && that->" ++ var ++ " == NULL)"
-		, "\t\treturn true;"
-		, "\telse"
-		, "\t\treturn false;"
-		, "}"
-		, "else"
+		  "if(this->" ++ var ++ " != NULL && that->" ++ var ++ " != NULL)"
 		, "\treturn (*this->" ++ var ++ " == *that->" ++ var ++ ");"
+		, "else"
+		, "\treturn true;"
 		]
 	let match = case ctype of
 		Nothing -> defMethod decl args (matchHeader ++ matchBody "value")

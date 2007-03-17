@@ -67,7 +67,7 @@ constructor cn fields
 
 {-
  - We add a get_value_as_string method only if the ctype is the default
- - "String*"
+ - "string*"
  -}
 createTokenClass :: Symbol Terminal -> MakeTeaMonad Class
 createTokenClass t@(Terminal n ctype) = do
@@ -77,10 +77,10 @@ createTokenClass t@(Terminal n ctype) = do
 	c <- emptyClass cn
 	prefix <- withPrefix return
 	let val t = Attribute [] (t, "value")
-	let source_rep = Attribute [] ("String*", "source_rep")
-	let getv = defMethod ("String*", "get_value_as_string") [] ["return value;"]
+	let source_rep = Attribute [] ("string*", "source_rep")
+	let getv = defMethod ("string*", "get_value_as_string") [] ["return value;"]
 	let fields = case ctype of
-		Nothing -> [val "String*",getv]
+		Nothing -> [val "string*",getv]
 		Just "" -> [source_rep]
 		Just t -> [val t, source_rep]
 	let fieldSection = Section [] Public fields 

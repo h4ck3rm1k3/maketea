@@ -59,6 +59,7 @@ runMakeTea prefix grammar includes mixinCode = do
 		(contexts, classes, transform, visitor, wildcard) = runMaketea
 		commonHeader = unlines $ includes ++ [
 			  "#include <list>"
+			, "#include <string>"
 			, "using namespace std;"
 			, ""
 			]
@@ -87,4 +88,3 @@ runMakeTea prefix grammar includes mixinCode = do
 	writeFile (prefix ++ "_visitor.cpp") $
 		"#include \"" ++ prefix ++ "_visitor.h\"\n\n" ++ 
 		showClassImplementation visitor 
-
