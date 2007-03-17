@@ -23,6 +23,7 @@ import Mixin
 import Init
 import PatternMatching
 import DeepEquality
+import DeepCloning
 
 main :: IO ()
 main = do
@@ -48,6 +49,7 @@ runMakeTea prefix grammar includes mixinCode = do
 			addMixin mixinCode
 			addPatternMatching
 			addDeepEquality
+			addDeepCloning
 			addInit
 			-- Extract relevant components
 			contexts <- withContexts return

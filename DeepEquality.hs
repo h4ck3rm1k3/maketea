@@ -31,9 +31,9 @@ addEqualR (Disj _ _) cls = do
 	rootCn <- toClassName root
 	let decl = ("bool", "equals")
 	let args = [(rootCn ++ "*", "in")]
-	let match = PureVirtual [] decl args 
+	let equals = PureVirtual [] decl args 
 	return $ cls { 
-		  sections = sections cls ++ [Section [] Public [match]]
+		  sections = sections cls ++ [Section [] Public [equals]]
 		}
 addEqualR (Conj _ body) cls = do
 	root <- rootSymbol

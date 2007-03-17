@@ -64,13 +64,29 @@ emptyClassNoID n = Class {
 		, origin = Nothing
 		}
 
+{-
+ - Find classes
+ -}
+
+findClass :: Name Class -> MakeTeaMonad Class
+findClass cn = withClasses $ fromJustM ("could not find class " ++ cn) . find (\c -> name c == cn)
+
 findClassID :: Some Symbol -> MakeTeaMonad Integer
-findClassID s = withClasses $ \classes -> do
+findClassID s = do 
 	cn <- toClassName s
-	let cl = find (\c -> name c == cn) classes
-	case cl of
-		Just cl -> return (classid cl) 
-		Nothing -> fail $ "Unknown symbol " ++ show s
+	c <- findClass cn
+	return (classid c)
+
+{-
+ - Transitive reflexive closure of "extends"
+ -}
+
+allExtends :: [Name Class] -> MakeTeaMonad [Name Class]
+allExtends [] = return []
+allExtends (c:cn) = do
+	cls <- findClass c	
+	ss <- allExtends (extends cls ++ cn)
+	return $ nub (c:ss)
 
 {-
  - Class ordering
