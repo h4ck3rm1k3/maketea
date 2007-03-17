@@ -22,6 +22,7 @@ import PrettyPrinter
 import Mixin
 import Init
 import PatternMatching
+import DeepEquality
 
 main :: IO ()
 main = do
@@ -46,6 +47,7 @@ runMakeTea prefix grammar includes mixinCode = do
 			createBasicClasses
 			addMixin mixinCode
 			addPatternMatching
+			addDeepEquality
 			addInit
 			-- Extract relevant components
 			contexts <- withContexts return

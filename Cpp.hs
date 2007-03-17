@@ -183,3 +183,10 @@ hasMethod name cls = case mapMethods f cls of
 		f m 
 			| nameOf m == name = (Found True m)
 			| otherwise = return m
+
+{-
+ - Naive check if a C type is a pointer
+ -}
+
+isPointer :: CType -> Bool
+isPointer t = last t == '*'

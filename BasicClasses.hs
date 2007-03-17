@@ -67,7 +67,6 @@ constructor cn fields
 
 {-
  - We add a get_value_as_string method only if the ctype is the default
- - "string*"
  -}
 createTokenClass :: Symbol Terminal -> MakeTeaMonad Class
 createTokenClass t@(Terminal n ctype) = do
