@@ -24,6 +24,7 @@ import Init
 import PatternMatching
 import DeepEquality
 import DeepCloning
+import Constructors
 
 main :: IO ()
 main = do
@@ -46,11 +47,13 @@ runMakeTea config grammar includes mixinCode = do
 		maketea = do
 			contextResolution
 			createBasicClasses
+			addConstructor initConstr
 			addMixin mixinCode
+			addConstructor nullConstr
+			addInit
 			addPatternMatching
 			addDeepEquality
 			addDeepCloning
-			addInit
 			orderClasses
 			-- Extract relevant components
 			prefix <- getPrefix

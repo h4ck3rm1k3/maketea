@@ -23,13 +23,35 @@ elim2 f (Exists t) (Exists t') = f t t'
  - Search monad
  -}
 
-data Search a = Found Bool a
+data Search f a b = Found (f a) b
 
-instance Monad Search where
-	return a = Found False a
-	-- m a -> (a -> m b) -> m b
-	(Found found a) >>= f = case f a of
-		Found found' b -> Found (found || found') b
+class Monad (m a) => SearchMonad m a where
+	found :: a -> m a a
+
+fromSearch :: Search f a b -> f a
+fromSearch (Found a _) = a
+
+compareUsing :: (SearchMonad m a) => (a -> Bool) -> a -> m a a
+compareUsing f a 
+	| f a = found a 
+	| otherwise = return a 
+
+instance SearchMonad (Search Maybe) a where
+	found a = Found (Just a) a
+
+instance SearchMonad (Search []) a where
+	found a = Found [a] a 
+
+instance Monad (Search Maybe a) where
+	return b = Found Nothing b
+	Found (Just a) a' >>= f = case f a' of
+		Found _ b -> Found (Just a) b
+	Found Nothing a' >>= f = f a'
+
+instance Monad (Search [] a) where
+	return b = Found [] b
+	Found as a' >>= f = case f a' of
+		Found as' b -> Found (as ++ as') b
 
 {-
  - Various
@@ -52,4 +74,3 @@ concatMapM f (a:as) = do
 fromJustM :: Monad m => String -> Maybe a -> m a
 fromJustM err (Just a) = return a
 fromJustM err Nothing = fail err
-

@@ -26,7 +26,8 @@ createClass r@(Disj c _) = do
 	let c = emptyAbstractClass cn
 	prefix <- getPrefix 
 	return $ c { 
-		  extends = inhn 
+		  extends = inhn
+		, comment = [show r] 
 		, friends = [prefix ++ "_transform", prefix ++ "_visitor"]
 		, origin = Just (Left (Exists r))
 		}
@@ -37,12 +38,12 @@ createClass r@(Conj c body) = do
 	fieldDecls <- mapM (elim createFieldDecl) body
 	let fields = map (Attribute []) fieldDecls 
 	let fieldSection = Section [] Public fields
-	let constrSection = Section [show r] Public [constructor cn fields]
 	c <- emptyClass cn
 	prefix <- getPrefix 
 	return $ c { 
 		  extends = inhn
-		, sections = [constrSection, fieldSection] ++ sections c 
+		, comment = [show r]
+		, sections = [fieldSection] ++ sections c 
 		, friends = [prefix ++ "_transform", prefix ++ "_visitor"]
 		, origin = Just (Left (Exists r))
 		}
@@ -55,15 +56,6 @@ createFieldDecl t@(Term _ _ _) = do
 	typ <- toClassName t
 	let name = termToVarName t
 	return (typ ++ "*", name)
-
--- Create a constructor for a list of fields
-constructor :: Name Class -> [Member] -> Member
-constructor cn fields 
-		= defConstr ("", cn) args (concatMap copy fields)
-	where
-		args = [(t,n) | Attribute _ (t,n) <- fields]
-		copy (Attribute _  (_,n)) = ["this->" ++ n ++ " = " ++ n ++ ";"]
-		copy _ = []
 
 {-
  - We add a get_value_as_string method only if the ctype is the default
@@ -85,11 +77,10 @@ createTokenClass t@(Terminal n ctype) = do
 		Just "" -> [source_rep, getsr]
 		Just t -> [val t, source_rep,getsr]
 	let fieldSection = Section [] Public fields 
-	let constrSection = Section [] Public [constructor cn fields]
 	return $ c {
 		  extends = inhn
 		, friends = [prefix ++ "_transform", prefix ++ "_visitor"]
-		, sections = sections c ++ [fieldSection, constrSection]
+		, sections = sections c ++ [fieldSection]
 		, origin = Just (Right t)
 		}
 		

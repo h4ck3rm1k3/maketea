@@ -19,7 +19,7 @@ addInit = withClasses $ setClasses . map addInitMethod
 addInitMethod :: Class -> Class
 addInitMethod cls = 
 		if hasMethod "_init" cls 
-		then runIdentity $ mapMethods addInitMethod' cls 
+		then runIdentity $ mapMembers addInitMethod' cls 
 		else cls
 	where
 		addInitMethod' :: Member -> Identity Member

@@ -179,8 +179,8 @@ symbolToVarName :: Symbol a -> Name Variable
 symbolToVarName (NonTerminal n) = n
 symbolToVarName (Terminal n _) = map toLower n
 
-mapMethods :: Monad m => (Member -> m Member) -> Class -> m Class
-mapMethods f cls = 
+mapMembers :: Monad m => (Member -> m Member) -> Class -> m Class
+mapMembers f cls = 
 	do
 		sections' <- mapM mapSection (sections cls)
 		return $ cls { sections = sections' }
@@ -190,17 +190,39 @@ mapMethods f cls =
 			return $ Section c a ms'
 
 {-
- - Search for a method in a class
+ - Search for a member in a class
  -}
 
-hasMethod :: Name Method -> Class -> Bool
-hasMethod name cls = case mapMethods f cls of
-		Found found _ -> found
-	where
-		f :: Member -> Search Member
-		f m 
-			| nameOf m == name = (Found True m)
-			| otherwise = return m
+findMember :: (Member -> Bool) -> Class -> [Member]
+findMember f cls = fromSearch (mapMembers (compareUsing f) cls)
+
+allMembers :: Class -> [Member]
+allMembers = findMember (const True) 
+
+hasMethod :: Name Method -> Class -> Bool 
+hasMethod name cls = not $ null (findMember (\m -> nameOf m == name) cls)
+
+{-
+ - Does cls have a member with the same signature as the given member?
+ -}
+
+hasSig :: Class -> Member -> Bool
+hasSig cls m = not (null (findMember (sameSig m) cls))
+
+sameSig :: Member -> Member -> Bool
+sameSig (Attribute _ d) (Attribute _ d') = sameDecl d d'
+sameSig (Method _ _ _ d as _) (Method _ _ _ d' as' _) 
+	| length as == length as'
+		= all (uncurry sameDecl) (zip (d:as) (d':as'))
+	| otherwise = False
+sameSig (PureVirtual _ d as) (PureVirtual _ d' as')
+	| length as == length as'
+		= all (uncurry sameDecl) (zip (d:as) (d':as'))
+	| otherwise = False
+sameSig _ _ = False
+
+sameDecl :: Decl a -> Decl a -> Bool
+sameDecl (t, _) (t', _) = t == t'
 
 {-
  - Naive check if a C type is a pointer

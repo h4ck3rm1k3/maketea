@@ -41,7 +41,7 @@ configP =
 		return (foldr ($) initConfig cs)
 	where
 		initConfig = Config {
-			  prefix = ""
+			  prefix = "AST"
 			, external_classes = []
 			, listClass = "list"
 			, stringClass = "string"

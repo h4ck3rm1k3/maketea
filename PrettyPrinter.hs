@@ -67,6 +67,7 @@ instance Show Class where
 
 showClassHeader :: Class -> String
 showClassHeader c = render $
+	docCmnt (comment c) $+$
 	text "class" <+> text (name c) <> docExtends (extends c) $+$
 	text "{" $+$ vcat (map docSectionHeader (sections c)) $+$ vcat (map docFriend (friends c)) $+$ text "};" $+$ text ""
 	
