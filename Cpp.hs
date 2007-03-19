@@ -10,6 +10,10 @@ import Data.Maybe
 import Data.List
 import Data.Char
 
+import Debug.Trace
+import Text.PrettyPrint
+
+
 import DataStructures
 import MakeTeaMonad
 import GrammarAnalysis
@@ -210,19 +214,17 @@ hasSig :: Class -> Member -> Bool
 hasSig cls m = not (null (findMember (sameSig m) cls))
 
 sameSig :: Member -> Member -> Bool
-sameSig (Attribute _ d) (Attribute _ d') = sameDecl d d'
+sameSig (Attribute _ d) (Attribute _ d') = d == d' 
 sameSig (Method _ _ _ d as _) (Method _ _ _ d' as' _) 
-	| length as == length as'
-		= all (uncurry sameDecl) (zip (d:as) (d':as'))
+	| d == d' && length as == length as' = all sameType (zip as as')
 	| otherwise = False
 sameSig (PureVirtual _ d as) (PureVirtual _ d' as')
-	| length as == length as'
-		= all (uncurry sameDecl) (zip (d:as) (d':as'))
+	| d == d' && length as == length as' = all sameType (zip as as')
 	| otherwise = False
 sameSig _ _ = False
 
-sameDecl :: Decl a -> Decl a -> Bool
-sameDecl (t, _) (t', _) = t == t'
+sameType :: (Decl a, Decl a) -> Bool
+sameType ((t, _), (t', _)) = t == t'
 
 {-
  - Naive check if a C type is a pointer
