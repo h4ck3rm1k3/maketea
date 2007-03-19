@@ -28,19 +28,19 @@ import DeepCloning
 main :: IO ()
 main = do
 	args <- getArgs
-	let [prefix, filename] = 
-		if length args == 2 
+	let [filename] = 
+		if length args == 1 
 			then args 
-			else error "usage: maketea prefix filename"
+			else error "usage: maketea filename"
 	parseResult <- parseFromFile maketeaP filename
 	case parseResult of 
 		Left parseError -> do
 			print parseError
-		Right (grammar, includes, mixin) -> 
-			runMakeTea prefix grammar includes mixin
+		Right (config, grammar, includes, mixin) -> 
+			runMakeTea config grammar includes mixin
 
-runMakeTea :: String -> Grammar -> [Include] -> [Class] -> IO ()
-runMakeTea prefix grammar includes mixinCode = do 
+runMakeTea :: Config -> Grammar -> [Include] -> [Class] -> IO ()
+runMakeTea config grammar includes mixinCode = do 
 	--  
 	let 
 		maketea = do
@@ -51,44 +51,77 @@ runMakeTea prefix grammar includes mixinCode = do
 			addDeepEquality
 			addDeepCloning
 			addInit
+			orderClasses
 			-- Extract relevant components
+			prefix <- getPrefix
 			contexts <- withContexts return
 			classes <- withClasses return
 			transform <- transformClass
 			visitor <- visitorClass
 			wildcard <- wildcardClass
-			return (contexts, orderClasses classes, transform, visitor, wildcard)
-		init = initState (prefix ++ "_") grammar
+			return (prefix, contexts, classes, transform, visitor, wildcard)
+		init = initState config grammar
 		runMaketea = evalState maketea init
-		(contexts, classes, transform, visitor, wildcard) = runMaketea
+		(prefix, contexts, classes, transform, visitor, wildcard) = runMaketea
 		commonHeader = unlines $ includes ++ [
 			  "#include <list>"
 			, "#include <string>"
+			, "#include <assert.h>"
 			, "using namespace std;"
 			, ""
 			]
 	-- And create output
 	writeFile (prefix ++ "-contexts") $ unlines (map show contexts)
-	writeFile (prefix ++ ".h") $
-		commonHeader ++
-		unlines (map (\c -> "class " ++ c ++ ";") (map name classes)) ++
-		"\n" ++
-		unlines (map showClassHeader classes) ++
-		unlines wildcard
-	writeFile (prefix ++ ".cpp") $
-		"#include \"" ++ prefix ++ ".h\"\n\n" ++ 
-		unlines (map showClassImplementation classes)
-	writeFile (prefix ++ "_transform.h") $
-		commonHeader ++
-		"#include \"" ++ prefix ++ ".h\"\n\n" ++ 
-		showClassHeader transform
-	writeFile (prefix ++ "_transform.cpp") $
-		"#include \"" ++ prefix ++ "_transform.h\"\n\n" ++ 
-		showClassImplementation transform
-	writeFile (prefix ++ "_visitor.h") $
-		commonHeader ++
-		"#include \"" ++ prefix ++ ".h\"\n\n" ++ 
-		showClassHeader visitor 
-	writeFile (prefix ++ "_visitor.cpp") $
-		"#include \"" ++ prefix ++ "_visitor.h\"\n\n" ++ 
-		showClassImplementation visitor 
+	writeFile (prefix ++ ".h") $ unlines [
+		  "#ifndef _" ++ prefix ++ "_H_"
+		, "#define _" ++ prefix ++ "_H_"
+		, ""
+		, commonHeader
+		, unlines (map (\c -> "class " ++ c ++ ";") (map name classes))
+		, "class " ++ prefix ++ "_transform;"
+		, "class " ++ prefix ++ "_visitor;"
+		, ""
+		, unlines (map showClassHeader classes)
+		, unlines wildcard
+		, ""
+		, "#endif"
+		]
+	writeFile (prefix ++ ".cpp") $ unlines [
+		  "#include \"" ++ prefix ++ ".h\""
+		, "#include \"" ++ prefix ++ "_transform.h\""
+		, "#include \"" ++ prefix ++ "_visitor.h\""
+		, ""
+		, unlines (map showClassImplementation classes)
+		]
+	writeFile (prefix ++ "_transform.h") $ unlines [
+		   "#ifndef _" ++ prefix ++ "_TRANSFORM_H_"
+		, "#define _" ++ prefix ++ "_TRANSFORM_H_"
+		, ""
+		, commonHeader
+		, "#include \"" ++ prefix ++ ".h\""
+		, ""
+		, showClassHeader transform
+		, ""
+		, "#endif"
+		]
+	writeFile (prefix ++ "_transform.cpp") $ unlines [
+		  "#include \"" ++ prefix ++ "_transform.h\""
+		, ""
+		, showClassImplementation transform
+		]
+	writeFile (prefix ++ "_visitor.h") $ unlines [
+	      "#ifndef _" ++ prefix ++ "_VISITOR_H_"
+		, "#define _" ++ prefix ++ "_VISITOR_H_"
+		, ""
+		, commonHeader
+		, "#include \"" ++ prefix ++ ".h\""
+		, ""
+		, showClassHeader visitor 
+		, ""
+		, "#endif"
+		]
+	writeFile (prefix ++ "_visitor.cpp") $ unlines [
+		  "#include \"" ++ prefix ++ "_visitor.h\""
+		, ""
+		, showClassImplementation visitor 
+		]

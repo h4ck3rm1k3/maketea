@@ -24,15 +24,17 @@ transformClass = do
 	c_children <- withConj $ mapM chConcrete
 	c_children_t <- withTokens $ mapM chToken
 	{- Internal methods -}
-	transforms <- withNonMarkers $ mapM transform . nubBy eqTermTransform
+	transforms <- withNonMarkers $ concatMapM transform . nubBy eqTermTransform
 	abs <- usedAbstractSymbols
 	a_pre <- mapM (ppAbstract "pre_") abs
 	a_post <- mapM (ppAbstract "post_") abs
 	a_children <- mapM chAbstract abs
-	prefix <- withPrefix return
-	return $ (emptyClassNoID (prefix ++ "transform")) {
+	prefix <- getPrefix 
+	let destructor = defMethod ("", "~" ++ prefix ++ "_transform") [] []
+	return $ (emptyClassNoID (prefix ++ "_transform")) {
 		  sections = [
-		  	  Section ["The pre-transform gets called before the children of the node are transformed"] Public c_pre
+		  	  Section [] Public [destructor] 
+		  	, Section ["The pre-transform gets called before the children of the node are transformed"] Public c_pre
 			, Section ["The post-transform gets called after the children of the node have been transformed"] Public c_post 
 			, Section ["Transform the children of the node"] Public c_children
 			, Section ["Tokens don't have children, so these methods do nothing by default"] Public c_children_t
@@ -82,49 +84,68 @@ eqTermTransform (Term _ s m) (Term _ s' m')
  - for must be (X,_,Single) or (X,_,Optional).
  -}
 
-transform :: Term NonMarker -> MakeTeaMonad Member
+transform :: Term NonMarker -> MakeTeaMonad [Member]
 transform t@(Term l s m) | isVector m = do
 	(_,_,m') <- findContext s
 	tType <- toClassName t
 	let decl = (tType ++ "*", termToTransform t)
 	let args = [(tType ++ "*", "in")]
+	let t' = Term undefined s Single
+	tType' <- toClassName t' 
+	let decl' = (tType ++ "*", termToTransform t')
+	let args' = [(tType' ++ "*", "in")]
 	let checkInNull = ["if(in == NULL) return NULL;",""]
-	let body = if isVector m' then [
+	-- Transform a list of Xs in a context is (X,X,vector)
+	let transformMM = defMethod decl args [
 		  tType ++ "::const_iterator i;"
 		, tType ++ "* out = new " ++ tType ++ ";"
 		, ""
 		, "for(i = in->begin(); i != in->end(); i++)"
-		, "{"	
-		, "\t" ++ tType ++ "* local_out = new " ++ tType ++ ";"
-		, "\tif(*i == NULL) local_out->push_back(NULL);"
-		, "\telse pre_" ++ toVarName s ++ "(*i, local_out);"
-		, "\tfor(i = local_out->begin(); i != local_out->end(); i++)"
-		, "\t{"
-		, "\t\tif(*i != NULL)"
-		, "\t\t{"
-		, "\t\t\tchildren_" ++ toVarName s ++ "(*i);"
-		, "\t\t\tpost_" ++ toVarName s ++ "(*i, out);"
-		, "\t\t}"
-		, "\t\telse out->push_back(NULL);"
-		, "\t}"
+		, "{"
+		, "\tout->push_back_all(transform_" ++ toVarName s ++ "(*i));"
 		, "}"
 		, ""
 		, "return out;"
-		] else [
-		-- We are transforming a list of Xs, but the context is not a list
-		-- That means that we must have a transform method for a single X
-		-- (since we must have an explicit of an occurrence of a single X)
+		]
+	-- Transform a lsit of Xs in a context (X,X,single)
+	let transformMS = defMethod decl args [
 		  tType ++ "::const_iterator i;"
-		, tType ++ "* out_list = new " ++ tType ++ ";"
+		, tType ++ "* out = new " ++ tType ++ ";"
 		, ""
 		, "for(i = in->begin(); i != in->end(); i++)"
 		, "{"
-		, "\tout_list->push_back(transform_" ++ toVarName s ++ "(*i));"
+		, "\tout->push_back(transform_" ++ toVarName s ++ "(*i));"
 		, "}"
 		, ""
-		, "return out_list;"
-		]	
-	return (defMethod decl args (checkInNull ++ body))
+		, "return out;"
+		]
+	-- Transform a single X in a context (X,X,vector)
+	let transformSM = defMethod decl' args' [
+		  tType ++ "::const_iterator i;"
+		, "" ++ tType ++ "* out1 = new " ++ tType ++ ";"
+		, "" ++ tType ++ "* out2 = new " ++ tType ++ ";"
+		, ""
+		, "if(in == NULL) out1->push_back(NULL);"
+		, "else pre_" ++ toVarName s ++ "(*i, out1);"
+		, "for(i = out1->begin(); i != out1->end(); i++)"
+		, "{"
+		, "\tif(*i != NULL)"
+		, "\t{"
+		, "\t\tchildren_" ++ toVarName s ++ "(*i);"
+		, "\t\tpost_" ++ toVarName s ++ "(*i, out2);"
+		, "\t}"
+		, "\telse out2->push_back(NULL);"
+		, "}"
+		, ""
+		, "return out2;"
+		]
+	-- We don't need a TransformSS because if the context is single, we must
+	-- have an explicit occurence of a single X somewhere in the grammar, and
+	-- will will generate the TransformSS then.
+	let methods = if isVector m' 
+		then [transformMM, transformSM]
+		else [transformMS]
+	return methods
 transform t@(Term l s m) | not (isVector m) = do
 	tType <- toClassName t
 	let decl = (tType ++ "*", termToTransform t)
@@ -143,7 +164,7 @@ transform t@(Term l s m) | not (isVector m) = do
 		, ""
 		, "return out;"
 		]
-	return (defMethod decl args body)
+	return [defMethod decl args body]
 
 ppAbstract :: String -> Name NonTerminal -> MakeTeaMonad Member 
 ppAbstract pp nt = 
@@ -155,18 +176,29 @@ ppAbstract pp nt =
 		conc <- concreteInstances (NonTerminal nt)
 		if isVector m 
 			then do
-				let outType = "list<" ++ cn ++ "*>*"
+				list <- getListClass
+				let outType = list ++ "<" ++ cn ++ "*>*"
 				let decl = ("void", fnName)
 				let args = [(inType, "in"), (outType, "out")]
 				cases <- concatMapM listCase conc	
-				let body = ["switch(in->classid())", "{"] ++ cases ++ ["}"]
+				let body = [
+					  "switch(in->classid())"
+					, "{"] ++ cases ++ [
+					  "}"
+					, "assert(0);"
+					]
 				return $ defMethod decl args body 
 			else do
 				let outType = cn ++ "*"
 				let decl = (outType, fnName)
 				let args = [(inType, "in")]
 				cases <- concatMapM nonListCase conc	
-				let body = ["switch(in->classid())", "{"] ++ cases ++ ["}"]
+				let body = [
+					  "switch(in->classid())"
+					, "{"] ++ cases ++ [
+					  "}"
+					, "assert(0);"
+					]
 				return $ defMethod decl args body 
 	where
 		nonListCase :: Some Symbol -> MakeTeaMonad Body
@@ -258,7 +290,8 @@ ppConcrete pp s = do
 	let inType = cn ++ "*"
 	if isVector m 
 		then do
-			let outType = "list<" ++ cn' ++ "*>*"
+			list <- getListClass
+			let outType = list ++ "<" ++ cn' ++ "*>*"
 			let decl = ("void", fnName)
 			let args = [(inType, "in"), (outType, "out")]
 			return $ defMethod decl args ["out->push_back(in);"]

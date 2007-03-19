@@ -14,10 +14,11 @@ import MakeTeaMonad
 import Cpp
 import Util
 import GrammarAnalysis
+import ContextResolution
 
 visitorClass :: MakeTeaMonad Class
 visitorClass = do
-	prefix <- withPrefix return
+	prefix <- getPrefix 
 	{- API -}
 	pre <- withSymbols $ mapM (elim (prepost "pre_"))
 	post <- withSymbols $ mapM (elim (prepost "post_"))
@@ -27,20 +28,22 @@ visitorClass = do
 	children <- withConj $ mapM chPublic
 	children_t <- withTokens $ mapM chToken 
 	{- Internal methods -}
-	visits <- withNonMarkers $ mapM visit . nubBy eqTermVisitor
+	visits <- withNonMarkers $ concatMapM visit . nubBy eqTermVisitor
 	abs <- usedAbstractSymbols
 	a_pre_chain <- mapM (dispatcher "pre_" "_chain") abs
 	a_post_chain <- mapM (dispatcher "post_" "_chain") abs
 	a_children <- mapM (dispatcher "children_" "") abs
-	return $ (emptyClassNoID (prefix ++ "visitor")) {
+	let destructor = defMethod ("", "~" ++ prefix ++ "_visitor") [] []
+	return $ (emptyClassNoID (prefix ++ "_visitor")) {
 			sections = [
-			  Section [] Public pre
+		  	  Section [] Public [destructor] 
+			, Section [] Public pre
 			, Section [] Public post
 			, Section [] Public children
 			, Section [] Public children_t
 			, Section [] Public pre_chain 
 			, Section [] Public post_chain 
-			, Section [] Protected visits
+			, Section [] Public visits
 			, Section [] Protected a_pre_chain
 			, Section [] Protected a_post_chain
 			, Section [] Protected a_children
@@ -56,21 +59,35 @@ eqTermVisitor (Term _ s m) (Term _ s' m')
  - Internal methods
  -}
 
-visit :: Term NonMarker -> MakeTeaMonad Member
+visit :: Term NonMarker -> MakeTeaMonad [Member]
 visit t@(Term _ s m) | isVector m = do
 	cn <- toClassName t
 	let decl = ("void", termToVisitor t)
 	let args = [(cn ++ "*", "in")]
-	let body = [
+	let t' = Term undefined s Single
+	cn' <- toClassName t'
+	let decl' = ("void", termToVisitor t')
+	let args' = [(cn' ++ "*", "in")]
+	let visitM = defMethod decl args [
 		  cn ++ "::const_iterator i;"
 		, "for(i = in->begin(); i != in->end(); i++)"
 		, "{"
-		, "\tpre_" ++ toVarName s ++ "_chain(*i);"
-		, "\tchildren_" ++ toVarName s ++ "(*i);"
-		, "\tpost_" ++ toVarName s ++ "_chain(*i);"
+		, "\tvisit_" ++ toVarName s ++ "(*i);"
 		, "}"
 		]
-	return $ defMethod decl args body
+	let visitS = defMethod decl' args' [
+		  "pre_" ++ toVarName s ++ "_chain(in);"
+		, "children_" ++ toVarName s ++ "(in);"
+		, "post_" ++ toVarName s ++ "_chain(in);"
+		]
+	-- If the context m' is Single, that means that there must be an explicit
+	-- Single occurence of the term somewhere else, and we do not need to
+	-- generate the visitS here
+	(_,_,m') <- findContext s 
+	let methods = if isVector m' 
+		then [visitM, visitS]
+		else [visitM]
+	return methods 
 visit t@(Term _ s m) | not (isVector m) = do
 	cn <- toClassName t
 	let decl = ("void", termToVisitor t)
@@ -80,7 +97,7 @@ visit t@(Term _ s m) | not (isVector m) = do
 		, "children_" ++ toVarName s ++ "(in);"
 		, "post_" ++ toVarName s ++ "_chain(in);"
 		]
-	return $ defMethod decl args body 
+	return $ [defMethod decl args body]
 
 dispatcher :: String -> String -> Name NonTerminal -> MakeTeaMonad Member
 dispatcher pre post nt = 

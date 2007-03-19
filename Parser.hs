@@ -19,15 +19,64 @@ import Cpp
  - Top-level 
  -}
 
-maketeaP :: Parser (Grammar, [Include], [Class])
+maketeaP :: Parser (Config, Grammar, [Include], [Class])
 maketeaP =
 	do
 		whiteSpace
+		c <- configP
 		g <- grammarP
 		is <- many includeP
 		cs <- many classP
 		eof
-		return (g, is, cs)
+		return (c, g, is, cs)
+
+{-
+ - Configuration
+ -}
+
+configP :: Parser Config
+configP = 
+	do
+		cs <- many settingP
+		return (foldr ($) initConfig cs)
+	where
+		initConfig = Config {
+			  prefix = ""
+			, external_classes = []
+			, listClass = "list"
+			, stringClass = "string"
+			}
+
+settingP :: Parser (Config -> Config)
+settingP = 
+	do
+		reserved "external"
+		reserved "class"
+		cn <- stringLiteral
+		reservedOp ";"
+		return (\c -> c { external_classes = cn : external_classes c })
+	<|>
+	do
+		reserved "prefix"
+		pf <- stringLiteral
+		reservedOp ";"
+		return (\c -> c { prefix = pf })
+	<|>
+	do
+		reserved "use"
+		(	
+			do
+				reserved "list"
+				id <- stringLiteral
+				reservedOp ";"
+				return (\c -> c { listClass = id })
+			<|>
+			do
+				reserved "string"
+				id <- stringLiteral
+				reservedOp ";"
+				return (\c -> c { stringClass = id}) 
+			)
 
 {-
  - Classes
@@ -274,8 +323,20 @@ markerP = try $
 
 lexer = T.makeTokenParser haskellStyle
 	{
-		reservedNames = ["class","private","protected","public","virtual","static"]
-	,	reservedOpNames = ["|",";","?","*","*?","?*","::=",":","+","{","}","(",")"]
+		reservedNames = [
+			  "class"
+			, "private"
+			, "protected"
+			, "public"
+			, "virtual"
+			, "static"
+			, "external"
+			]
+	,	reservedOpNames = [
+			  "|", ";", "?", "*"
+			, "*?", "?*", "::=", ":"
+			, "+","{","}","(",")"
+			]
 	}
 
 whiteSpace = T.whiteSpace lexer

@@ -113,11 +113,22 @@ type Comment = [String]
 
 type MakeTeaMonad a = State MakeTeaState a
 data MakeTeaState = MTS {
-	  prefix :: String
-	, grammar :: Grammar  
+	  grammar :: Grammar  
 	, nextClassID :: Integer
 	, contexts :: Maybe [Context]
 	, classes :: Maybe [Class]
 	, inheritanceGraph :: FGL.Gr (Some Symbol) ()
 	, topological :: [Some Symbol]
+	, config :: Config
+	}
+
+{-
+ - Configuration
+ -}
+
+data Config = Config {
+	  prefix :: String
+	, external_classes :: [Name Class]
+	, listClass :: String
+	, stringClass :: String
 	}

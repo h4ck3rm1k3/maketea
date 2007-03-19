@@ -24,10 +24,10 @@ createClass r@(Disj c _) = do
 	cn <- toClassName c
 	inhn <- mapM (toClassName . NonTerminal) inh
 	let c = emptyAbstractClass cn
-	prefix <- withPrefix return
+	prefix <- getPrefix 
 	return $ c { 
 		  extends = inhn 
-		, friends = [prefix ++ "transform", prefix ++ "visitor"]
+		, friends = [prefix ++ "_transform", prefix ++ "_visitor"]
 		, origin = Just (Left (Exists r))
 		}
 createClass r@(Conj c body) = do
@@ -39,11 +39,11 @@ createClass r@(Conj c body) = do
 	let fieldSection = Section [] Public fields
 	let constrSection = Section [show r] Public [constructor cn fields]
 	c <- emptyClass cn
-	prefix <- withPrefix return
+	prefix <- getPrefix 
 	return $ c { 
 		  extends = inhn
 		, sections = [constrSection, fieldSection] ++ sections c 
-		, friends = [prefix ++ "transform", prefix ++ "visitor"]
+		, friends = [prefix ++ "_transform", prefix ++ "_visitor"]
 		, origin = Just (Left (Exists r))
 		}
 
@@ -74,19 +74,21 @@ createTokenClass t@(Terminal n ctype) = do
 	cn <- toClassName t
 	inhn <- mapM (toClassName . NonTerminal) inh
 	c <- emptyClass cn
-	prefix <- withPrefix return
+	prefix <- getPrefix 
 	let val t = Attribute [] (t, "value")
-	let source_rep = Attribute [] ("string*", "source_rep")
-	let getv = defMethod ("string*", "get_value_as_string") [] ["return value;"]
+	string <- getStringClass
+	let source_rep = Attribute [] (string ++ "*", "source_rep")
+	let getv = defMethod (string ++ "*", "get_value_as_string") [] ["return value;"]
+	let getsr = defMethod (string ++ "*", "get_source_rep") [] ["return source_rep;"]
 	let fields = case ctype of
-		Nothing -> [val "string*",getv]
-		Just "" -> [source_rep]
-		Just t -> [val t, source_rep]
+		Nothing -> [val (string ++ "*"),getv]
+		Just "" -> [source_rep, getsr]
+		Just t -> [val t, source_rep,getsr]
 	let fieldSection = Section [] Public fields 
 	let constrSection = Section [] Public [constructor cn fields]
 	return $ c {
 		  extends = inhn
-		, friends = [prefix ++ "transform", prefix ++ "visitor"]
+		, friends = [prefix ++ "_transform", prefix ++ "_visitor"]
 		, sections = sections c ++ [fieldSection, constrSection]
 		, origin = Just (Right t)
 		}

@@ -40,14 +40,14 @@ withClasses f = get >>= f . fromJust . classes
 withContexts :: ([Context] -> MakeTeaMonad a) -> MakeTeaMonad a
 withContexts f = get >>= f . fromJust . contexts
 
-withPrefix :: (String -> MakeTeaMonad a) -> MakeTeaMonad a
-withPrefix f = get >>= f . prefix
-
 withSymbols :: ([Some Symbol] -> MakeTeaMonad a) -> MakeTeaMonad a
 withSymbols f = withGrammar $ f . allSymbols
 
 withTopological :: ([Some Symbol] -> MakeTeaMonad a) -> MakeTeaMonad a
 withTopological f = get >>= f . topological
+
+withConfig :: (Config -> MakeTeaMonad a) -> MakeTeaMonad a
+withConfig f = get >>= f . config
 
 getNextClassID :: MakeTeaMonad Integer
 getNextClassID = do
@@ -67,22 +67,38 @@ setClasses cs = do
 	put (s { classes = Just cs })
 
 {-
+ - Access to the configuration
+ -}
+
+isExternal :: Name Class -> MakeTeaMonad Bool
+isExternal c = withConfig $ return . (c `elem`) . external_classes 
+
+getPrefix :: MakeTeaMonad String
+getPrefix = withConfig $ return . prefix
+
+getListClass :: MakeTeaMonad String
+getListClass = withConfig $ return . listClass
+
+getStringClass :: MakeTeaMonad String
+getStringClass = withConfig $ return . stringClass
+
+{-
  - Initial state for the monad
  -}
 
-initState :: String -> Grammar -> MakeTeaState
-initState pr gr 
+initState :: Config -> Grammar -> MakeTeaState
+initState cf gr
 	| not (null unreachable) = error $ "The inheritance hierarchy does not have a unique root.\nThe following nodes are unreachable from " ++ show (fromJust (FGL.lab ih (head top))) ++ ": " ++ show (map (fromJust . FGL.lab ih) unreachable)
 	| FGL.hasLoop ih = error $ "There are self-referential rules in some of: " ++ show (map (map (fromJust . FGL.lab ih)) (FGL.scc ih))
 	| not (null cycles) = error $ "The inheritance graph is cyclic.\nCycles: " ++ show (map (map (fromJust . FGL.lab ih)) cycles)
 	| otherwise = MTS {
-		  prefix = pr
-		, grammar = gr
+		  grammar = gr
 		, nextClassID = 1 
 		, contexts = Nothing
 		, classes = Nothing
 		, inheritanceGraph = ih 
 		, topological = FGL.topsort' ih 
+		, config = cf 
 		}
 	where
 		ih = findInheritanceGraph gr

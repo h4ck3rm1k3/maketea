@@ -93,7 +93,8 @@ addCloneT t@(Terminal _ ctype) cls = do
 	root <- rootSymbol
 	rootCn <- toClassName root
 	let decl = (name cls ++ "*", "clone")
-	let cloneStr vn = "string* " ++ vn ++ " = new string(*this->" ++ vn ++ ");"
+	string <- getStringClass
+	let cloneStr vn = string ++ "* " ++ vn ++ " = new " ++ string ++ "(*this->" ++ vn ++ ");"
 	cmf <- cloneMixinFrom cls
 	let clone = case ctype of
 		Nothing -> defMethod decl [] $ [

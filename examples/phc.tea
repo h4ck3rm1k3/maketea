@@ -8,6 +8,15 @@
 -}
 
 {-
+	Configuration
+-}
+
+prefix "AST";
+external class "Object";
+use list "List";
+use string "String";
+
+{-
 	Top-level structure
 -}
 
@@ -70,7 +79,7 @@ expr ::=
    | method_invocation | new | clone
 	| literal ;
 	
-literal ::= INT<int> | REAL<double> | STRING<string*> | BOOL<bool> | NULL<> ;
+literal ::= INT<int> | REAL<double> | STRING<String*> | BOOL<bool> | NULL<> ;
    
 assignment ::= variable is_ref:"&"? expr ;
 
@@ -136,22 +145,12 @@ identifier ::=
 	Extra attributes and methods
 -}
 
-class AST_node
-{
-public:
-	void clone_mixin_from(AST_node* in)
-	{
-		// blah
-	}
-};
-
-{-
 #include <iostream>
 #include <sstream>
 #include <iomanip>
 #include "lib/error.h"
 #include "lib/Object.h"
--- #include "lib/List.h"
+#include "lib/List.h"
 #include "lib/String.h"
 #include "lib/Boolean.h"
 #include "lib/Integer.h"
@@ -603,4 +602,3 @@ public:
 		attrs->set("phc.unparser.is_elseif", new Boolean(false));
 	}
 };
--}

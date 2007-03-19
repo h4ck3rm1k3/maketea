@@ -84,33 +84,31 @@ findClassID s = do
 allExtends :: [Name Class] -> MakeTeaMonad [Name Class]
 allExtends [] = return []
 allExtends (c:cn) = do
-	cls <- findClass c	
-	ss <- allExtends (extends cls ++ cn)
-	return $ nub (c:ss)
+	isExt <- isExternal c
+	if isExt 
+		then allExtends cn
+		else do
+			cls <- findClass c	
+			ss <- allExtends (extends cls ++ cn)
+			return $ nub (c:ss)
 
 {-
  - Class ordering
  - 
  - Sort the list of classes topologically based on their inheritance relation
- - (this is a stable sort). Classes that are inherited from but not defined
- - anywhere, are assumed "outside" classes and are not taken into account in
- - the ordering (i.e., if a class A inherits from a class B, but we have no
- - definition of class B, class B is not required to be defined before class
- - A).
--}
+ - (this is a stable sort). External classes are presumed defined.
+ -}
 
-orderClasses :: [Class] -> [Class]
-orderClasses classes = orderClasses' outsideClasses classes
-	where
-		outsideClasses = allInh \\ allClasses
-		allInh = nub (concatMap extends classes)
-		allClasses = map name classes
+orderClasses :: MakeTeaMonad ()
+orderClasses = withClasses $ \cs -> do
+	ext <- withConfig $ return . external_classes
+	setClasses (orderClasses' ext cs)
 
 orderClasses' :: [Name Class] -> [Class] -> [Class]
 orderClasses' _ [] = [] 
 orderClasses' visited toVisit = 
 		if null next
-		then error $ "cyclic inheritance hierarchy:\n" 
+		then error $ "cyclic inheritance hierarchy or unknown class:\n" 
 			++ unlines (map errMsg toVisit) 
 		else next ++ (orderClasses' visitedR toVisitR) 
 	where
@@ -136,14 +134,18 @@ instance ToClassName (Term NonMarker) where
 	toClassName = termToClassName
 
 symbolToClassName :: Symbol a -> MakeTeaMonad (Name Class)
-symbolToClassName (NonTerminal n) = withPrefix $ return . (++ n)
+symbolToClassName (NonTerminal n) = do
+	p <- getPrefix
+	return (p ++ "_" ++ n)
 symbolToClassName (Terminal n _) = return $ "Token_" ++ (map toLower n) 
 
 termToClassName :: Term NonMarker -> MakeTeaMonad CType 
 termToClassName (Term _ s m) = do
 	cn <- elim symbolToClassName s
 	if isVector m 
-		then return ("list<" ++ cn ++ "*>")
+		then do
+			list <- getListClass
+			return (list ++ "<" ++ cn ++ "*>")
 		else return cn
 
 {-
