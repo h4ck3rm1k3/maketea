@@ -18,12 +18,10 @@ addDeepCloning =
 		cs <- withClasses $ mapM f
 		setClasses cs
 	where
-		f cls 
-			| hasMethod "clone" cls = return cls
-			| otherwise = case origin cls of
-				Nothing -> return cls
-				Just (Left r) -> elim addCloneR r cls
-				Just (Right t) -> addCloneT t cls	
+		f cls = case origin cls of
+			Nothing -> return cls
+			Just (Left r) -> elim addCloneR r cls
+			Just (Right t) -> addCloneT t cls	
 
 addCloneR :: Rule a -> Class -> MakeTeaMonad Class
 addCloneR (Disj _ _) cls = do
@@ -118,10 +116,8 @@ addCloneT t@(Terminal _ ctype) cls = do
 			]
 	let clone_value t = defMethod (t, "clone_value") [] ["return value;"] 
 	let methods = case ctype of
-		Just t@(_:_) | not (hasMethod "clone_value" cls) -> 
-			[clone,clone_value t]
-		_ -> 
-			[clone]
+		Just t@(_:_) -> [clone,clone_value t]
+		_ -> [clone]
 	return $ cls {
 		  sections = sections cls ++ [Section [] Public methods]
 		}

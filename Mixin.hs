@@ -10,6 +10,7 @@ import Data.List
 
 import DataStructures
 import MakeTeaMonad
+import Cpp
 
 addMixin :: [Class] -> MakeTeaMonad ()
 addMixin mixinCode = do
@@ -31,8 +32,15 @@ combineClasses c c' = Class {
 		  name = name c
 		, comment = comment c ++ comment c'
 		, extends = extends c ++ extends c'
-		, sections = sections c ++ sections c'
+		, sections = (sections c `remove` c') ++ sections c'
 		, classid = classid c
 		, friends = friends c ++ friends c'
 		, origin = origin c
 		}
+
+-- Remove all members in the list of sections which are also defined in cls
+remove :: [Section] -> Class -> [Section]
+remove ss cls = map f ss
+	where
+		f (Section p cmnt ms) 
+			= Section p cmnt [m | m <- ms, not (cls `hasSig` m)]

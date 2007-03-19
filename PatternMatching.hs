@@ -18,9 +18,7 @@ addPatternMatching =
 		cs <- withClasses $ mapM f
 		setClasses cs
 	where
-		f cls 
-			| hasMethod "match" cls = return cls
-			| otherwise = case origin cls of
+		f cls = case origin cls of
 				Nothing -> return cls
 				Just (Left r) -> elim addMatchR r cls
 				Just (Right t) -> addMatchT t cls	
@@ -144,10 +142,8 @@ addMatchT t@(Terminal _ ctype) cls = do
 			)
 	let match_value = defMethod ("bool", "match_value") [(name cls ++ "*", "that")] ["return true;"]
 	let methods = case ctype of
-		Just t@(_:_) | not (hasMethod "match_value" cls) -> 
-			[match,match_value]
-		_ -> 
-			[match]
+		Just t@(_:_) -> [match,match_value]
+		_ -> [match]
 	return $ cls {
 		  sections = sections cls ++ [Section [] Public methods]
 		}

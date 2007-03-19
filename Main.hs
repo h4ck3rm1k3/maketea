@@ -47,13 +47,15 @@ runMakeTea config grammar includes mixinCode = do
 		maketea = do
 			contextResolution
 			createBasicClasses
-			addConstructor initConstr
-			addMixin mixinCode
-			addConstructor nullConstr
+			addConstructors 
 			addInit
 			addPatternMatching
 			addDeepEquality
 			addDeepCloning
+			-- The mixin code can override anything we add, so it should
+			-- be added last
+			addMixin mixinCode
+			-- Order the classes so that C++ won't complain
 			orderClasses
 			-- Extract relevant components
 			prefix <- getPrefix

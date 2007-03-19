@@ -10,14 +10,25 @@ import DataStructures
 import MakeTeaMonad
 import Cpp
 
-addConstructor :: (Class -> Member) -> MakeTeaMonad ()
-addConstructor mkConstr = do
-	cs <- withClasses $ mapM $ \cls -> do
-		let constr = mkConstr cls
-		return $ if hasSig cls constr 
-			then cls
-			else (cls { sections = Section [] Public [constr] : sections cls })
-	setClasses cs
+addConstructors :: MakeTeaMonad ()
+addConstructors = 
+	do
+		cs <- withClasses $ mapM $ \cls -> do
+			let ic = initConstr cls
+			let nc = nullConstr cls
+			if numArgs ic == 0 
+				then return cls { sections = 
+					  Section [] Public [initConstr cls]
+					: sections cls 
+					}
+				else return cls { sections = 
+					  Section [] Public [initConstr cls]
+					: Section [] Protected [nullConstr cls] 
+					: sections cls 
+					}
+		setClasses cs
+	where
+		numArgs (Method _ _ _ _ args _) = length args 
 
 initConstr :: Class -> Member
 initConstr cls = defConstr ("", name cls) args (concatMap init fields)
@@ -36,5 +47,3 @@ nullConstr cls = defConstr ("", name cls) [] (concatMap initNull fields)
 		initNull :: Member -> Body
 		initNull (Attribute _  (_,n)) = ["this->" ++ n ++ " = 0;"]
 		initNull _ = []
-
-	

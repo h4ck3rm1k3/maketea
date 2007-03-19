@@ -18,12 +18,10 @@ addDeepEquality =
 		cs <- withClasses $ mapM f
 		setClasses cs
 	where
-		f cls 
-			| hasMethod "equals" cls = return cls
-			| otherwise = case origin cls of
-				Nothing -> return cls
-				Just (Left r) -> elim addEqualR r cls
-				Just (Right t) -> addEqualT t cls	
+		f cls = case origin cls of
+			Nothing -> return cls
+			Just (Left r) -> elim addEqualR r cls
+			Just (Right t) -> addEqualT t cls	
 
 addEqualR :: Rule a -> Class -> MakeTeaMonad Class
 addEqualR (Disj _ _) cls = do
@@ -150,10 +148,8 @@ addEqualT t@(Terminal _ ctype) cls = do
 		| not isP = "return (this->value == that->value);"
 	let equals_value isP = defMethod ("bool", "equals_value") [(name cls ++ "*", "that")] [equals_value_body isP]
 	let methods = case ctype of
-		Just t@(_:_) | not (hasMethod "equals_value" cls) -> 
-			[equal,equals_value (isPointer t)]
-		_ -> 
-			[equal]
+		Just t@(_:_) -> [equal,equals_value (isPointer t)]
+		_ -> [equal]
 	return $ cls {
 		  sections = sections cls ++ [Section [] Public methods]
 		}
