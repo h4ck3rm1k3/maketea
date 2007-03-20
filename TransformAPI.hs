@@ -95,13 +95,15 @@ transform t@(Term l s m) | isVector m = do
 	let decl' = (tType ++ "*", termToTransform t')
 	let args' = [(tType' ++ "*", "in")]
 	-- Transform a list of Xs in a context is (X,X,vector)
+	-- If the list itself is NULL, return NULL
 	let transformMM = defMethod decl args [
 		  tType ++ "::const_iterator i;"
 		, tType ++ "* out = new " ++ tType ++ ";"
 		, ""
 		, "if(in == NULL)"
-		, "\tout->push_back(NULL);"
-		, "else for(i = in->begin(); i != in->end(); i++)"
+		, "\treturn NULL;"
+		, ""
+		, "for(i = in->begin(); i != in->end(); i++)"
 		, "{"
 		, "\tout->push_back_all(transform_" ++ toVarName s ++ "(*i));"
 		, "}"
@@ -109,12 +111,14 @@ transform t@(Term l s m) | isVector m = do
 		, "return out;"
 		]
 	-- Transform a list of Xs in a context (X,X,single)
+	-- If the list itself is NULL, return NULL
 	let transformMS = defMethod decl args [
 		  tType ++ "::const_iterator i;"
 		, tType ++ "* out = new " ++ tType ++ ";"
 		, ""
 		, "if(in == NULL)"
-		, "\tout->push_back(NULL);"
+		, "\treturn NULL;"
+		, ""
 		, "for(i = in->begin(); i != in->end(); i++)"
 		, "{"
 		, "\tout->push_back(transform_" ++ toVarName s ++ "(*i));"
@@ -123,6 +127,7 @@ transform t@(Term l s m) | isVector m = do
 		, "return out;"
 		]
 	-- Transform a single X in a context (X,X,vector)
+	-- If X is NULL, return a list containing a single NULL
 	let transformSM = defMethod decl' args' [
 		  tType ++ "::const_iterator i;"
 		, "" ++ tType ++ "* out1 = new " ++ tType ++ ";"
