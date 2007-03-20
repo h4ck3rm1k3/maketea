@@ -90,7 +90,8 @@ docMemberSignature (PureVirtual cmnt decl args) = docCmnt cmnt $+$
 	docDecl decl <> parens (commaSep (map docDecl args)) <+> text "= 0;"
 
 docDecl :: Decl a -> Doc
-docDecl (name, ctype) = text name <+> text ctype
+docDecl ("", name) = text name
+docDecl (ctype, name) = text ctype <+> text name 
 
 docVirtual :: IsVirtual -> Doc
 docVirtual Virtual = text "virtual "
@@ -121,7 +122,7 @@ showClassImplementation c = render . vcat $ map f (sections c)
 docMethod :: Name Class -> Member -> Doc
 docMethod cn (Method cmnt _ _ (ret,name) args body) = 
 	docCmnt cmnt $+$
-	text ret <+> text (cn ++ "::" ++ name) 
+	docDecl (ret, cn ++ "::" ++ name) 
 	<> parens (commaSep (map docDecl args))
 	$+$ text "{" $+$ nest 4 (docBody body) $+$ text "}" $+$ text ""
 docMethod cn _ = empty 
