@@ -81,6 +81,7 @@ cloneTerm t@(Term _ _ m) | isVector m = do
 		, "if(this->" ++ vn ++ " != NULL)"
 		, "{"
 		, "\t" ++ cn ++ "::const_iterator i;"
+		, "\t" ++ vn ++ " = new " ++ cn ++ ";"
 		, "\tfor(i = this->" ++ vn ++ "->begin(); i != this->" ++ vn ++ "->end(); i++)" 
 		, "\t\t" ++ vn ++ "->push_back(*i ? (*i)->clone() : NULL);"
 		, "}"
