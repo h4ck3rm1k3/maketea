@@ -34,6 +34,8 @@ visitorClass = do
 	a_post_chain <- mapM (dispatcher "post_" "_chain") abs
 	a_children <- mapM (dispatcher "children_" "") abs
 	let destructor = defMethod ("", "~" ++ prefix ++ "_visitor") [] []
+	let visit_null = defMethod ("void", "visit_null") [("char const*", "name")] []
+	let visit_marker = defMethod ("void", "visit_marker") [("char const*", "name"), ("bool", "value")] [] 
 	return $ (emptyClassNoID (prefix ++ "_visitor")) {
 			sections = [
 		  	  Section [] Public [destructor] 
@@ -44,6 +46,7 @@ visitorClass = do
 			, Section [] Public pre_chain 
 			, Section [] Public post_chain 
 			, Section [] Public visits
+			, Section [] Public [visit_null, visit_marker]
 			, Section [] Protected a_pre_chain
 			, Section [] Protected a_post_chain
 			, Section [] Protected a_children
@@ -70,15 +73,23 @@ visit t@(Term _ s m) | isVector m = do
 	let args' = [(cn' ++ "*", "in")]
 	let visitM = defMethod decl args [
 		  cn ++ "::const_iterator i;"
-		, "for(i = in->begin(); i != in->end(); i++)"
+		, ""
+		, "if(in == NULL)"
+		, "\tvisit_null(\"" ++ cn ++ "\");"
+		, "else for(i = in->begin(); i != in->end(); i++)"
 		, "{"
 		, "\tvisit_" ++ toVarName s ++ "(*i);"
 		, "}"
 		]
 	let visitS = defMethod decl' args' [
-		  "pre_" ++ toVarName s ++ "_chain(in);"
-		, "children_" ++ toVarName s ++ "(in);"
-		, "post_" ++ toVarName s ++ "_chain(in);"
+		  "if(in == NULL)"
+		, "\tvisit_null(\"" ++ cn ++ "\");"
+		, "else"
+		, "{"
+		, "\tpre_" ++ toVarName s ++ "_chain(in);"
+		, "\tchildren_" ++ toVarName s ++ "(in);"
+		, "\tpost_" ++ toVarName s ++ "_chain(in);"
+		, "}"
 		]
 	-- If the context m' is Single, that means that there must be an explicit
 	-- Single occurence of the term somewhere else, and we do not need to
@@ -93,9 +104,14 @@ visit t@(Term _ s m) | not (isVector m) = do
 	let decl = ("void", termToVisitor t)
 	let args = [(cn ++ "*", "in")]
 	let body = [
-		  "pre_" ++ toVarName s ++ "_chain(in);"
-		, "children_" ++ toVarName s ++ "(in);"
-		, "post_" ++ toVarName s ++ "_chain(in);"
+		  "if(in == NULL)"
+		, "\tvisit_null(\"" ++ cn ++ "\");"
+		, "else"
+		, "{"
+		, "\tpre_" ++ toVarName s ++ "_chain(in);"
+		, "\tchildren_" ++ toVarName s ++ "(in);"
+		, "\tpost_" ++ toVarName s ++ "_chain(in);"
+		, "}"
 		]
 	return $ [defMethod decl args body]
 
@@ -137,9 +153,10 @@ chPublic (Conj nt body) = do
 	let decl = ("void", "children_" ++ nameOf nt)
 	let args = [(cn ++ "*", "in")]
 	let 
-		f :: Term NonMarker -> String
-		f t = termToVisitor t ++ "(in->" ++ termToVarName t ++ ");"
-	return $ defMethod decl args (map f (nonMarkers body))
+		f :: Term a -> String
+		f t@(Term _ _ _) = termToVisitor t ++ "(in->" ++ toVarName t ++ ");"
+		f m@(Marker _ _) = "visit_marker(\"" ++ toVarName m ++ "\", in->" ++ toVarName m ++ ");"
+	return $ defMethod decl args (map (elim f) body)
 
 chToken :: Symbol Terminal -> MakeTeaMonad Member
 chToken t@(Terminal n _) = do
