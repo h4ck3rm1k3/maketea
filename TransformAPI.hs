@@ -94,24 +94,27 @@ transform t@(Term l s m) | isVector m = do
 	tType' <- toClassName t' 
 	let decl' = (tType ++ "*", termToTransform t')
 	let args' = [(tType' ++ "*", "in")]
-	let checkInNull = ["if(in == NULL) return NULL;",""]
 	-- Transform a list of Xs in a context is (X,X,vector)
 	let transformMM = defMethod decl args [
 		  tType ++ "::const_iterator i;"
 		, tType ++ "* out = new " ++ tType ++ ";"
 		, ""
-		, "for(i = in->begin(); i != in->end(); i++)"
+		, "if(in == NULL)"
+		, "\tout->push_back(NULL);"
+		, "else for(i = in->begin(); i != in->end(); i++)"
 		, "{"
 		, "\tout->push_back_all(transform_" ++ toVarName s ++ "(*i));"
 		, "}"
 		, ""
 		, "return out;"
 		]
-	-- Transform a lsit of Xs in a context (X,X,single)
+	-- Transform a list of Xs in a context (X,X,single)
 	let transformMS = defMethod decl args [
 		  tType ++ "::const_iterator i;"
 		, tType ++ "* out = new " ++ tType ++ ";"
 		, ""
+		, "if(in == NULL)"
+		, "\tout->push_back(NULL);"
 		, "for(i = in->begin(); i != in->end(); i++)"
 		, "{"
 		, "\tout->push_back(transform_" ++ toVarName s ++ "(*i));"
@@ -126,7 +129,7 @@ transform t@(Term l s m) | isVector m = do
 		, "" ++ tType ++ "* out2 = new " ++ tType ++ ";"
 		, ""
 		, "if(in == NULL) out1->push_back(NULL);"
-		, "else pre_" ++ toVarName s ++ "(*i, out1);"
+		, "else pre_" ++ toVarName s ++ "(in, out1);"
 		, "for(i = out1->begin(); i != out1->end(); i++)"
 		, "{"
 		, "\tif(*i != NULL)"
@@ -227,12 +230,12 @@ ppAbstract pp nt =
 					, "\t\tfor(i = local_out->begin(); i != local_out->end(); i++)"
 					, "\t\t\tout->push_back(*i);"
 					, "\t}"
-					, "\tbreak;"
+					, "\treturn;"
 					]
 				else return [
 					  "case " ++ show cid ++ ": "
 					, "\tout->push_back(" ++ pp ++ toVarName s ++ "(dynamic_cast<" ++ cn ++ "*>(in)));"
-					, "\tbreak;"
+					, "\treturn;"
 					]
 
 
