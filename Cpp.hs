@@ -9,14 +9,10 @@ module Cpp where
 import Data.Maybe
 import Data.List
 import Data.Char
-
-import Debug.Trace
 import Text.PrettyPrint
-
 
 import DataStructures
 import MakeTeaMonad
-import GrammarAnalysis
 import PrettyPrinter
 import Util
 

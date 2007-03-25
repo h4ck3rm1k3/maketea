@@ -10,7 +10,6 @@ import DataStructures
 import Cpp
 import MakeTeaMonad
 import Util
-import GrammarAnalysis
 
 addDeepEquality :: MakeTeaMonad ()
 addDeepEquality = 

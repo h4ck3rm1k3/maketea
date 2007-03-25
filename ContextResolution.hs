@@ -10,7 +10,6 @@ import Control.Monad
 import Data.List
 
 import DataStructures
-import GrammarAnalysis
 import MakeTeaMonad
 import Util
 import PrettyPrinter

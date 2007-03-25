@@ -10,7 +10,6 @@ import Control.Monad.Identity
 
 import DataStructures
 import Cpp
-import GrammarAnalysis
 import MakeTeaMonad
 
 addInit :: MakeTeaMonad ()

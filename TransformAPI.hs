@@ -9,7 +9,6 @@ module TransformAPI where
 import Data.List
 
 import DataStructures 
-import GrammarAnalysis
 import ContextResolution
 import MakeTeaMonad
 import Cpp
@@ -24,7 +23,8 @@ transformClass = do
 	c_children <- withConj $ mapM chConcrete
 	c_children_t <- withTokens $ mapM chToken
 	{- Internal methods -}
-	transforms <- withNonMarkers $ concatMapM transform . nubBy eqTermTransform
+	nm <- allNonMarkers
+	transforms <- (concatMapM transform . nubBy eqTermTransform) nm
 	abs <- usedAbstractSymbols
 	a_pre <- mapM (ppAbstract "pre_") abs
 	a_post <- mapM (ppAbstract "post_") abs

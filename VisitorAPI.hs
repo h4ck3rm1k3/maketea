@@ -13,7 +13,6 @@ import DataStructures
 import MakeTeaMonad
 import Cpp
 import Util
-import GrammarAnalysis
 import ContextResolution
 
 visitorClass :: MakeTeaMonad Class
@@ -28,7 +27,8 @@ visitorClass = do
 	children <- withConj $ mapM chPublic
 	children_t <- withTokens $ mapM chToken 
 	{- Internal methods -}
-	visits <- withNonMarkers $ concatMapM visit . nubBy eqTermVisitor
+	nm <- allNonMarkers
+	visits <- (concatMapM visit . nubBy eqTermVisitor) nm
 	abs <- usedAbstractSymbols
 	a_pre_chain <- mapM (dispatcher "pre_" "_chain") abs
 	a_post_chain <- mapM (dispatcher "post_" "_chain") abs
