@@ -23,6 +23,9 @@ addPatternMatching =
 				Just (Left r) -> elim addMatchR r cls
 				Just (Right t) -> addMatchT t cls	
 
+-- A node of type X should match a wildcard of type Y if Y is more general 
+-- than Y. That means that we should check for wildcards before downcasting
+-- to the type of X.
 addMatchR :: Rule a -> Class -> MakeTeaMonad Class
 addMatchR (Disj _ _) cls = do
 	root <- rootSymbol
