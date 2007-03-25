@@ -142,7 +142,14 @@ tokens = catMaybes . map (elim f)
 		f _ = Nothing
 
 allNonMarkers :: [Rule Conj] -> [Term NonMarker]
-allNonMarkers = nonMarkers . allTerms
+allNonMarkers rs = ts ++ [Term Nothing t Single | t <- filter f rh] 
+	where
+		ts :: [Term NonMarker]
+		ts = (nonMarkers . allTerms) rs
+		rh :: [Some Symbol]
+		rh = map (Exists . ruleHead) rs
+		f :: Some Symbol -> Bool
+		f t = null [t' | Term _ t' _ <- ts, t == t']
 
 conjBody :: Rule Conj -> [Some Term]
 conjBody (Conj _ body) = body
