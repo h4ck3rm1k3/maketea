@@ -116,6 +116,7 @@ data MakeTeaState = MTS {
 	  grammar :: Grammar  
 	, nextClassID :: Integer
 	, contexts :: Maybe [Context]
+	, origContexts :: Maybe [Context]
 	, classes :: Maybe [Class]
 	, inheritanceGraph :: FGL.Gr (Some Symbol) ()
 	, topological :: [Some Symbol]

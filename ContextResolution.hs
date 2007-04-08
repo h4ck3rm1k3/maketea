@@ -25,15 +25,36 @@ findContext s = withContexts $ \cxs -> case (find (\(s',_,_) -> s == s')) cxs of
 	Just cx -> return cx
 
 {-
+ - Find the original contexts for a symbol (that is, the contexts before
+ - context resolution
+ -}
+
+findOrigContexts :: Some Symbol -> MakeTeaMonad [Context]
+findOrigContexts s = withOrigContexts $ \cxs -> case filter (\(s',_,_) -> s == s') cxs of
+	[] -> return [(s,s,Single)]
+	cxs' -> return cxs'
+
+{-
  - Context resolution
  -}
 
 contextResolution :: MakeTeaMonad () 
 contextResolution = do
 	init <- withConj (concatMapM initContexts)
-	let sorted = sortBy (\(a,b,c) (a',b',c') -> compare a a') init
-	reduced <- reduce sorted
+	-- We sort the original contexts by the "destination" symbol in the context
+	-- Useful for BasicClasses.hs, where we need the "most specific" context
+	sorted <- sortOrig init
+	setOrigContexts sorted
+	-- Before we reduce the contexts, we sort them by the "source" symbol, so 
+	-- that we can easily pair-wise compare them
+	reduced <- reduce $ sortBy (\(s,_,_) (s',_,_) -> compare s s') init
 	setContexts reduced
+
+sortOrig :: [Context] -> MakeTeaMonad [Context]
+sortOrig cxs = do
+	top <- withTopological $ return . reverse
+	let ord = [(s,n) | s <- top | n <- [1..]]
+	return $ sortBy (\(_,s,_) (_,s',_) -> compare (lookup' s ord) (lookup' s' ord)) cxs
 
 {-
  - reduce does context resolution, reducing two contexts (i,t1,m1) and

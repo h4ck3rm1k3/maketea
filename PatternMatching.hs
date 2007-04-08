@@ -149,6 +149,7 @@ wildcardClass :: MakeTeaMonad Body
 wildcardClass = do
 	root <- rootSymbol
 	rootCn <- toClassName root
+	prefix <- getPrefix
 	cid <- getNextClassID
 	return [
 		  "class __WILDCARD__"
@@ -190,7 +191,7 @@ wildcardClass = do
 		, "\t\t\treturn new Wildcard(NULL);"
 		, "\t}"
 		, ""
-		, "\tvirtual bool equals(AST_node* in)"
+		, "\tvirtual bool equals(" ++ rootCn ++ "* in)"
 		, "\t{"
 		, "\t\tWildcard* that = dynamic_cast<Wildcard*>(in);"
 		, "\t\tif(that == NULL) return false;"
@@ -202,6 +203,19 @@ wildcardClass = do
 		, "\t\t}"
 		, ""
 		, "\t\treturn value->equals(that->value);"
+		, "\t}"
+		, ""
+		-- TODO: is this the implementation of visit and transform_children we want?
+		, "\tvirtual void visit(" ++ prefix ++ "_visitor* visitor)"
+		, "\t{"
+		, "\t\tif(value != NULL)"
+		, "\t\t\tvalue->visit(visitor);"
+		, "\t}"
+		, ""
+		, "\tvirtual void transform_children(" ++ prefix ++ "_transform* transform)"
+		, "\t{"
+		, "\t\tif(value != NULL)"
+		, "\t\t\tvalue->transform_children(transform);"
 		, "\t}"
 		, ""
 		, "public:"

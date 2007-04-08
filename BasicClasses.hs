@@ -10,6 +10,7 @@ import DataStructures
 import MakeTeaMonad
 import Cpp
 import Util
+import ContextResolution
 
 createBasicClasses :: MakeTeaMonad () 
 createBasicClasses = do
@@ -23,11 +24,15 @@ createClass r@(Disj c _) = do
 	cn <- toClassName c
 	inhn <- mapM (toClassName . NonTerminal) inh
 	let c = emptyAbstractClass cn
-	prefix <- getPrefix 
+	prefix <- getPrefix
+	let visit = PureVirtual [] ("void", "visit") [(prefix ++ "_visitor*", "visitor")]
+	let trCh = PureVirtual [] ("void", "transform_children") [(prefix ++ "_transform*", "transform")]
+	let tvS = Section [] Public [visit, trCh]
 	return $ c { 
 		  extends = inhn
 		, comment = [show r] 
 		, origin = Just (Left (Exists r))
+		, sections = [tvS] ++ sections c 
 		}
 createClass r@(Conj c body) = do
 	inh <- directSuperclasses (Exists c)
@@ -35,15 +40,24 @@ createClass r@(Conj c body) = do
 	inhn <- mapM (toClassName . NonTerminal) inh
 	fieldDecls <- mapM (elim createFieldDecl) body
 	let fields = map (Attribute []) fieldDecls 
-	let fieldSection = Section [] Public fields
+	let fieldS = Section [] Public fields
+	tvS <- visitTransformSection (Exists c) 
 	c <- emptyClass cn
-	prefix <- getPrefix 
 	return $ c { 
 		  extends = inhn
 		, comment = [show r]
-		, sections = [fieldSection] ++ sections c 
+		, sections = [fieldS, tvS] ++ sections c 
 		, origin = Just (Left (Exists r))
 		}
+
+visitTransformSection :: Some Symbol -> MakeTeaMonad Section
+visitTransformSection s = do
+	-- Any of the original contexts will do
+	prefix <- getPrefix 
+	(_,s',_):_ <- findOrigContexts s 
+	let visit = defMethod ("void", "visit") [(prefix ++ "_visitor*", "visitor")] ["visitor->visit_" ++ toVarName s' ++ "(this);"]
+	let trCh = defMethod ("void", "transform_children") [(prefix ++ "_transform*", "transform")] ["transform->children_" ++ toVarName s' ++ "(this);"]
+	return $ Section [] Public [visit, trCh]
 
 createFieldDecl :: Term a -> MakeTeaMonad (Decl Variable) 
 createFieldDecl t@(Marker _ _) = do
@@ -63,7 +77,6 @@ createTokenClass t@(Terminal n ctype) = do
 	cn <- toClassName t
 	inhn <- mapM (toClassName . NonTerminal) inh
 	c <- emptyClass cn
-	prefix <- getPrefix 
 	let val t = Attribute [] (t, "value")
 	string <- getStringClass
 	let source_rep = Attribute [] (string ++ "*", "source_rep")
@@ -73,10 +86,11 @@ createTokenClass t@(Terminal n ctype) = do
 		Nothing -> [val (string ++ "*"),getv]
 		Just "" -> [source_rep, getsr]
 		Just t -> [val t, source_rep,getsr]
-	let fieldSection = Section [] Public fields 
+	let fieldS = Section [] Public fields
+	tvS <- visitTransformSection (Exists t) 
 	return $ c {
 		  extends = inhn
-		, sections = sections c ++ [fieldSection]
+		, sections = [tvS, fieldS] ++ sections c 
 		, origin = Just (Right t)
 		}
 		

@@ -37,6 +37,9 @@ withClasses f = get >>= f . fromJust . classes
 withContexts :: ([Context] -> MakeTeaMonad a) -> MakeTeaMonad a
 withContexts f = get >>= f . fromJust . contexts
 
+withOrigContexts :: ([Context] -> MakeTeaMonad a) -> MakeTeaMonad a
+withOrigContexts f = get >>= f . fromJust . origContexts
+
 withSymbols :: ([Some Symbol] -> MakeTeaMonad a) -> MakeTeaMonad a
 withSymbols f = withGrammar $ f . allSymbols
 
@@ -57,6 +60,11 @@ setContexts :: [Context] -> MakeTeaMonad ()
 setContexts cxs = do
 	s <- get
 	put (s { contexts = Just cxs })
+
+setOrigContexts :: [Context] -> MakeTeaMonad ()
+setOrigContexts cxs = do
+	s <- get
+	put (s { origContexts = Just cxs })
 
 setClasses :: [Class] -> MakeTeaMonad ()
 setClasses cs = do
@@ -92,6 +100,7 @@ initState cf gr
 		  grammar = gr
 		, nextClassID = 1 
 		, contexts = Nothing
+		, origContexts = Nothing
 		, classes = Nothing
 		, inheritanceGraph = ih 
 		, topological = FGL.topsort' ih 

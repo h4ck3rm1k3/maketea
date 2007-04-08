@@ -6,6 +6,8 @@
 
 module Util where
 
+import Data.Maybe
+
 {-
  - Existentials
  -}
@@ -59,6 +61,9 @@ instance Monad (Search [] a) where
 
 implies :: (a -> Bool) -> (a -> Bool) -> a -> Bool
 f `implies` g = \a -> not (f a) || g a
+
+lookup' :: Eq a => a -> [(a,b)] -> b
+lookup' key = fromJust . lookup key
 
 {-
  - Monadic operators

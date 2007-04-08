@@ -47,9 +47,9 @@ visitorClass = do
 			, Section [] Public post_chain 
 			, Section [] Public visits
 			, Section [] Public [visit_null, visit_marker]
-			, Section [] Protected a_pre_chain
-			, Section [] Protected a_post_chain
-			, Section [] Protected a_children
+			, Section [] Public a_pre_chain
+			, Section [] Public a_post_chain
+			, Section [] Public a_children
 			]
 		}
 
@@ -83,7 +83,7 @@ visit t@(Term _ s m) | isVector m = do
 		]
 	let visitS = defMethod decl' args' [
 		  "if(in == NULL)"
-		, "\tvisit_null(\"" ++ cn ++ "\");"
+		, "\tvisit_null(\"" ++ cn' ++ "\");"
 		, "else"
 		, "{"
 		, "\tpre_" ++ toVarName s ++ "_chain(in);"

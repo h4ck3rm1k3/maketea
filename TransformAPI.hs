@@ -39,9 +39,9 @@ transformClass = do
 			, Section ["Transform the children of the node"] Public c_children
 			, Section ["Tokens don't have children, so these methods do nothing by default"] Public c_children_t
 			, Section ["Call the pre-transform, transform-children post-transform methods in order", "Do not override unless you know what you are doing"] Public transforms
-			, Section ["Invoke the right pre-transform (manual dispatching)","Do not override unless you know what you are doing"] Protected a_pre
-			, Section ["Invoke the right post-transform (manual dispatching)","Do not override unless you know what you are doing"] Protected a_post
-			, Section ["Invoke the right transform-children (manual dispatching)","Do not override unless you what you are doing"] Protected a_children
+			, Section ["Invoke the right pre-transform (manual dispatching)","Do not override unless you know what you are doing"] Public a_pre
+			, Section ["Invoke the right post-transform (manual dispatching)","Do not override unless you know what you are doing"] Public a_post
+			, Section ["Invoke the right transform-children (manual dispatching)","Do not override unless you what you are doing"] Public a_children
 			]
 		}
 
