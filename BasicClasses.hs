@@ -27,7 +27,6 @@ createClass r@(Disj c _) = do
 	return $ c { 
 		  extends = inhn
 		, comment = [show r] 
-		, friends = [prefix ++ "_transform", prefix ++ "_visitor"]
 		, origin = Just (Left (Exists r))
 		}
 createClass r@(Conj c body) = do
@@ -43,7 +42,6 @@ createClass r@(Conj c body) = do
 		  extends = inhn
 		, comment = [show r]
 		, sections = [fieldSection] ++ sections c 
-		, friends = [prefix ++ "_transform", prefix ++ "_visitor"]
 		, origin = Just (Left (Exists r))
 		}
 
@@ -78,7 +76,6 @@ createTokenClass t@(Terminal n ctype) = do
 	let fieldSection = Section [] Public fields 
 	return $ c {
 		  extends = inhn
-		, friends = [prefix ++ "_transform", prefix ++ "_visitor"]
 		, sections = sections c ++ [fieldSection]
 		, origin = Just (Right t)
 		}

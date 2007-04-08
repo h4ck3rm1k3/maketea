@@ -29,14 +29,13 @@ defConstr = Method [] NonVirtual NonStatic
 emptyClass :: Name Class -> MakeTeaMonad Class 
 emptyClass n = do
 	cid <- getNextClassID
-	let getID = defMethod ("int", "classid") [] ["return " ++ show cid ++ ";"]
+	let staticID = StaticConst [] ("int", "ID") (show cid) 
+	let getID = defMethod ("int", "classid") [] ["return ID;"]
 	return $ Class {
 		  name = n
 		, comment = []
 		, extends = []
-		, sections = [Section [] Private [getID]]
-		, classid = cid
-		, friends = []
+		, sections = [Section [] Public [staticID, getID]]
 		, origin = Nothing
 		}
 
@@ -45,9 +44,7 @@ emptyAbstractClass n = Class {
 		  name = n
 		, comment = []
 		, extends = []
-		, sections = [Section [] Private [getID]]
-		, classid = 0
-		, friends = []
+		, sections = [Section [] Public [getID]]
 		, origin = Nothing
 		}
 	where
@@ -59,8 +56,6 @@ emptyClassNoID n = Class {
 		, comment = []
 		, extends = []
 		, sections = []
-		, classid = 0
-		, friends = []
 		, origin = Nothing
 		}
 
@@ -70,12 +65,6 @@ emptyClassNoID n = Class {
 
 findClass :: Name Class -> MakeTeaMonad Class
 findClass cn = withClasses $ fromJustM ("could not find class " ++ cn) . find (\c -> name c == cn)
-
-findClassID :: Some Symbol -> MakeTeaMonad Integer
-findClassID s = do 
-	cn <- toClassName s
-	c <- findClass cn
-	return (classid c)
 
 {-
  - Transitive reflexive closure of "extends"

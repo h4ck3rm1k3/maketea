@@ -33,8 +33,6 @@ combineClasses c c' = Class {
 		, comment = comment c ++ comment c'
 		, extends = extends c ++ extends c'
 		, sections = (sections c `remove` c') ++ sections c'
-		, classid = classid c
-		, friends = friends c ++ friends c'
 		, origin = origin c
 		}
 

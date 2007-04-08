@@ -128,10 +128,9 @@ dispatcher pre post nt =
 	where
 		switchcase :: Some Symbol -> MakeTeaMonad Body
 		switchcase s = do
-			cid <- findClassID s
 			cn <- toClassName s
 			return [
-				  "case " ++ show cid ++ ":"
+				  "case " ++ cn ++ "::ID:"
 				, "\t" ++ pre ++ toVarName s ++ post ++ "(dynamic_cast<" ++ cn ++ "*>(in));"
 				, "\tbreak;"
 				]
@@ -170,8 +169,6 @@ termToVisitor (Term _ s m)
 	| isVector m = "visit_" ++ toVarName s ++ "_list"
 	| otherwise = "visit_" ++ toVarName s
 
--- TODO: we re-calculate the topological sort here on every invocation
--- If we have efficiency issues, this would be a good place to start :-)
 ppChain :: String -> Bool -> Some Symbol -> MakeTeaMonad Member
 ppChain pp rev s = do
 	top <- withTopological return 

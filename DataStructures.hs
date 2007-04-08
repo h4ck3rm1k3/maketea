@@ -80,8 +80,6 @@ data Class = Class {
 	, comment :: Comment 
 	, extends :: [Name Class]
 	, sections :: [Section]
-	, classid :: Integer
-	, friends :: [Name Class]
 	, origin :: Maybe (Either (Some Rule) (Symbol Terminal))
 	}
 data Section = Section Comment Access [Member]
@@ -90,7 +88,8 @@ data Access = Private | Protected | Public
 data Variable 
 data Method
 data Member = 
-	  Attribute Comment (Decl Variable) 
+	  Attribute Comment (Decl Variable)
+	| StaticConst Comment (Decl Variable) Default
 	| Method Comment IsVirtual IsStatic (Decl Method) [Decl Variable] Body 
 	| PureVirtual Comment (Decl Method) [Decl Variable] 
 
@@ -101,6 +100,7 @@ type Decl a = (CType, Name a)
 type Body = [String]
 type CType = String
 type Comment = [String] 
+type Default = String
 
 {-
  - The maketea monad 

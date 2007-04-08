@@ -204,10 +204,11 @@ wildcardClass = do
 		, "\t\treturn value->equals(that->value);"
 		, "\t}"
 		, ""
-		, "private:"
+		, "public:"
+		, "\tstatic const int ID = " ++ show cid ++ ";" 
 		, "\tint classid()"
 		, "\t{"
-		, "\t\treturn " ++ show cid ++ ";"
+		, "\t\treturn ID;"
 		, "\t}"
 		, "};"
 		]

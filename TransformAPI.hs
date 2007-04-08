@@ -211,15 +211,13 @@ ppAbstract pp nt =
 	where
 		nonListCase :: Some Symbol -> MakeTeaMonad Body
 		nonListCase s = do
-			cid <- findClassID s
 			cn <- toClassName s
 			return [
-				  "case " ++ show cid ++ ": " ++
+				  "case " ++ cn ++ "::ID: " ++
 				  "return " ++ pp ++ toVarName s ++ "(dynamic_cast<" ++ cn ++ "*>(in));"
 				]
 		listCase :: Some Symbol -> MakeTeaMonad Body
 		listCase s = do
-			cid <- findClassID s
 			cn <- toClassName s
 			(_,s',m) <- findContext s
 			let t' = Term undefined s' m
@@ -227,7 +225,7 @@ ppAbstract pp nt =
 			-- Context for the symbol may be more restrictive
 			if isVector m 
 				then return [
-					  "case " ++ show cid ++ ": "
+					  "case " ++ cn ++ "::ID: "
 					, "\t{"
 					, "\t\t" ++ tType' ++ "* local_out = new " ++ tType' ++ ";"
 					, "\t\t" ++ tType' ++ "::const_iterator i;" 
@@ -238,7 +236,7 @@ ppAbstract pp nt =
 					, "\treturn;"
 					]
 				else return [
-					  "case " ++ show cid ++ ": "
+					  "case " ++ cn ++ "::ID: "
 					, "\tout->push_back(" ++ pp ++ toVarName s ++ "(dynamic_cast<" ++ cn ++ "*>(in)));"
 					, "\treturn;"
 					]
@@ -256,10 +254,9 @@ chAbstract nt =
 		return (defMethod decl args body)
 	where
 		switchcase s = do
-			cid <- findClassID s
 			cn <- toClassName s
 			return [
-				  "case " ++ show cid ++ ":"
+				  "case " ++ cn ++ "::ID:"
 				, "\tchildren_" ++ toVarName s ++ "(dynamic_cast<" ++ cn ++ "*>(in));"
 				, "\tbreak;"
 				]

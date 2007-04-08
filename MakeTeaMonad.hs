@@ -391,5 +391,6 @@ instance NameOf Class where
 
 instance NameOf Member where
 	nameOf (Attribute _ (_, name)) = name
+	nameOf (StaticConst _ (_, name) _) = name
 	nameOf (Method _ _ _ (_, name) _ _) = name
 	nameOf (PureVirtual _ (_, name) _) = name

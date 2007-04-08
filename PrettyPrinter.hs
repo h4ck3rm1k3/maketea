@@ -69,7 +69,7 @@ showClassHeader :: Class -> String
 showClassHeader c = render $
 	docCmnt (comment c) $+$
 	text "class" <+> text (name c) <> docExtends (extends c) $+$
-	text "{" $+$ vcat (map docSectionHeader (sections c)) $+$ vcat (map docFriend (friends c)) $+$ text "};" $+$ text ""
+	text "{" $+$ vcat (map docSectionHeader (sections c)) $+$ text "};" $+$ text ""
 	
 docExtends :: [Name Class] -> Doc
 docExtends [] = empty
@@ -82,6 +82,8 @@ docSectionHeader (Section cmnt m ms) = docCmnt cmnt $+$ docAccess m <> colon $+$
 docMemberSignature :: Member -> Doc
 docMemberSignature (Attribute cmnt decl) = docCmnt cmnt $+$ 
 	docDecl decl <> semi
+docMemberSignature (StaticConst cmnt decl def) = docCmnt cmnt $+$ 
+	text "static const" <+> docDecl decl <+> char '=' <+> text def <> semi
 docMemberSignature (Method cmnt virtual static decl args body) = docCmnt cmnt $+$ 
 	docVirtual virtual <> docStatic static <>
 	docDecl decl <> parens (commaSep (map docDecl args)) <> semi
@@ -109,23 +111,20 @@ docAccess Private = text "private"
 docAccess Protected = text "protected"
 docAccess Public = text "public"
 
-docFriend :: Name Class -> Doc
-docFriend n = text "friend class" <+> text n <> semi 
-
 showClassImplementation :: Class -> String
 showClassImplementation c = render . vcat $ map f (sections c)
 	where
 		f :: Section -> Doc
 		f (Section cmnt _ ms) 
-			= docCmnt cmnt $+$ (vcat $ map (docMethod (name c)) ms)
+			= docCmnt cmnt $+$ (vcat $ map (docMember (name c)) ms)
 
-docMethod :: Name Class -> Member -> Doc
-docMethod cn (Method cmnt _ _ (ret,name) args body) = 
+docMember :: Name Class -> Member -> Doc
+docMember cn (Method cmnt _ _ (ret,name) args body) = 
 	docCmnt cmnt $+$
 	docDecl (ret, cn ++ "::" ++ name) 
 	<> parens (commaSep (map docDecl args))
 	$+$ text "{" $+$ nest 4 (docBody body) $+$ text "}" $+$ text ""
-docMethod cn _ = empty 
+docMember cn _ = empty 
 
 docBody :: Body -> Doc
 docBody = vcat . map text
