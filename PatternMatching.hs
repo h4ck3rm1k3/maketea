@@ -40,7 +40,7 @@ addMatchR (Conj _ body) cls = do
 	rootCn <- toClassName root
 	let decl = ("bool", "match")
 	let args = [(rootCn ++ "*", "in")]
-	matchTerms <- concatMapM matchTerm (nonMarkers body) 
+	matchTerms <- concatMapM (elim matchTerm) body 
 	let match = defMethod decl args $ [
 		  "__WILDCARD__* joker;"
 		, "joker = dynamic_cast<__WILDCARD__*>(in);"
@@ -57,7 +57,10 @@ addMatchR (Conj _ body) cls = do
 		  sections = sections cls ++ [Section [] Public [match]]
 		}
 
-matchTerm :: Term NonMarker -> MakeTeaMonad Body
+matchTerm :: Term a -> MakeTeaMonad Body
+matchTerm t@(Marker _ _) = do
+	let vn = toVarName t		
+	return ["that->" ++ vn ++ " = this->" ++ vn ++ ";"]
 matchTerm t@(Term _ _ m) | not (isVector m) = do 
 	let vn = toVarName t
 	return [
