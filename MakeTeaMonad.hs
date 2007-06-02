@@ -364,6 +364,21 @@ usedAbstractSymbols
 		f _ = Nothing
 
 {-
+ - 	All symbols that appear in a list
+ -}
+
+allLists :: MakeTeaMonad [Some Symbol]
+allLists = 
+	do
+		terms <- withConj (return . allTerms)
+		return . nub . catMaybes . map (elim f) $ terms
+	where
+		f :: Term a -> Maybe (Some Symbol)
+		f (Term _ s m) | isVector m = Just s
+		f _ = Nothing
+
+
+{-
  - Root of the inheritance graph
  -}
 

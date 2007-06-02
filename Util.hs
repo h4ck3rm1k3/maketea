@@ -65,6 +65,12 @@ f `implies` g = \a -> not (f a) || g a
 lookup' :: Eq a => a -> [(a,b)] -> b
 lookup' key = fromJust . lookup key
 
+-- Comma-separate a list of strings
+flattenComma :: [String] -> String
+flattenComma [] = ""
+flattenComma [x] = x
+flattenComma (x:xs) = x ++ ", " ++ flattenComma xs
+
 {-
  - Monadic operators
  -}

@@ -37,17 +37,13 @@ addCloneR (Conj _ body) cls = do
 	cloneTerms <- concatMapM (elim cloneTerm) body 
 	cmf <- cloneMixinFrom cls
 	let clone = defMethod decl [] $ cloneTerms ++ [
-	      name cls ++ "* clone = new " ++ name cls ++ "(" ++ comma (map toVarName body) ++ ");"
+	      name cls ++ "* clone = new " ++ name cls ++ "(" ++ flattenComma (map toVarName body) ++ ");"
 		] ++ cmf ++ [
 		  "return clone;"
 		]
 	return $ cls { 
 		  sections = sections cls ++ [Section [] Public [clone]]
 		}
-	where
-		comma [] = ""
-		comma [x] = x
-		comma (x:xs) = x ++ ", " ++ comma xs
 
 cloneMixinFrom :: Class -> MakeTeaMonad Body
 cloneMixinFrom cls = do

@@ -25,6 +25,7 @@ import PatternMatching
 import DeepEquality
 import DeepCloning
 import Constructors
+import FactoryMethod
 
 main :: IO ()
 main = do
@@ -70,10 +71,11 @@ runMakeTea config grammar includes mixinCode = do
 			transform <- transformClass
 			visitor <- visitorClass
 			wildcard <- wildcardClass
-			return (prefix, contexts, classes, transform, visitor, wildcard)
+			factory <- factoryMethod
+			return (prefix, contexts, classes, transform, visitor, wildcard, factory)
 		init = initState config grammar
 		runMaketea = evalState maketea init
-		(prefix, contexts, classes, transform, visitor, wildcard) = runMaketea
+		(prefix, contexts, classes, transform, visitor, wildcard, factory) = runMaketea
 		commonHeader = unlines $ includes ++ [
 			  "#include <list>"
 			, "#include <string>"
@@ -135,4 +137,20 @@ runMakeTea config grammar includes mixinCode = do
 		  "#include \"" ++ prefix ++ "_visitor.h\""
 		, ""
 		, showClassImplementation visitor 
+		]
+	writeFile (prefix ++ "_factory.h") $ unlines [
+	      "#ifndef _" ++ prefix ++ "_FACTORY_H_"
+		, "#define _" ++ prefix ++ "_FACTORY_H_"
+		, ""
+		, commonHeader
+		, "#include \"" ++ prefix ++ ".h\""
+		, ""
+		, showClassHeader factory 
+		, ""
+		, "#endif"
+		]
+	writeFile (prefix ++ "_factory.cpp") $ unlines [
+		  "#include \"" ++ prefix ++ "_factory.h\""
+		, ""
+		, showClassImplementation factory
 		]
