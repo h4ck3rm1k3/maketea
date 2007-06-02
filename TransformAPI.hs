@@ -34,8 +34,8 @@ transformClass = do
 	return $ (emptyClassNoID (prefix ++ "_transform")) {
 		  sections = [
 		  	  Section [] Public [destructor] 
-		  	, Section ["The pre-transform gets called before the children of the node are transformed"] Public c_pre
-			, Section ["The post-transform gets called after the children of the node have been transformed"] Public c_post 
+		  	, Section ["Invoked before the children are transformed"] Public c_pre
+			, Section ["Invoked after the children have been transformed"] Public c_post 
 			, Section ["Transform the children of the node"] Public c_children
 			, Section ["Tokens don't have children, so these methods do nothing by default"] Public c_children_t
 			, Section ["Call the pre-transform, transform-children post-transform methods in order", "Do not override unless you know what you are doing"] Public transforms

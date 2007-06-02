@@ -34,22 +34,26 @@ visitorClass = do
 	a_post_chain <- mapM (dispatcher "post_" "_chain") abs
 	a_children <- mapM (dispatcher "children_" "") abs
 	let destructor = defMethod ("", "~" ++ prefix ++ "_visitor") [] []
-	let visit_null = defMethod ("void", "visit_null") [("char const*", "name")] []
+	-- unparser support
 	let visit_marker = defMethod ("void", "visit_marker") [("char const*", "name"), ("bool", "value")] [] 
+	let visit_null = defMethod ("void", "visit_null") [("char const*", "type_id")] []
+	let visit_null_list = defMethod ("void", "visit_null_list") [("char const*", "type_id")] []
+	let pre_list = defMethod ("void", "pre_list") [("char const*", "type_id"), ("int", "size")] [] 
+	let post_list = defMethod ("void", "post_list") [("char const*", "type_id"), ("int", "size")] []
 	return $ (emptyClassNoID (prefix ++ "_visitor")) {
 			sections = [
 		  	  Section [] Public [destructor] 
-			, Section [] Public pre
-			, Section [] Public post
-			, Section [] Public children
-			, Section [] Public children_t
-			, Section [] Public pre_chain 
-			, Section [] Public post_chain 
-			, Section [] Public visits
-			, Section [] Public [visit_null, visit_marker]
-			, Section [] Public a_pre_chain
-			, Section [] Public a_post_chain
-			, Section [] Public a_children
+			, Section ["Invoked before the children are visited"] Public pre
+			, Section ["Invoked after the children have been visited"] Public post
+			, Section ["Visit the children of a node"] Public children
+			, Section ["Tokens don't have children, so these methods do nothing by default"] Public children_t
+			, Section ["Unparser support"] Public [visit_marker, visit_null, visit_null_list, pre_list, post_list]
+			, Section ["Invoke the chain of pre-visit methods along the inheritance hierachy","Do not override unless you know what you are doing"] Public pre_chain 
+			, Section ["Invoke the chain of post-visit methods along the inheritance hierarchy","(invoked in opposite order to the pre-chain)","Do not override unless you know what you are doing"] Public post_chain 
+			, Section ["Call the pre-chain, visit children and post-chain in order","Do not override unless you know what you are doing"] Public visits
+			, Section ["Invoke the right pre-chain (manual dispatching)","Do not override unless you know what you are doing"] Public a_pre_chain
+			, Section ["Invoke the right post-chain (manual dispatching)","Do not override unless you know what you are doing"] Public a_post_chain
+			, Section ["Invoke the right visit-children (manual dispatching)","Do not override unless you know what you are doing"] Public a_children
 			]
 		}
 
@@ -75,10 +79,17 @@ visit t@(Term _ s m) | isVector m = do
 		  cn ++ "::const_iterator i;"
 		, ""
 		, "if(in == NULL)"
-		, "\tvisit_null(\"" ++ cn ++ "\");"
-		, "else for(i = in->begin(); i != in->end(); i++)"
+		, "\tvisit_null_list(\"" ++ cn' ++ "\");"
+		, "else"
 		, "{"
-		, "\tvisit_" ++ toVarName s ++ "(*i);"
+		, "\tpre_list(\"" ++ cn' ++ "\", in->size());"
+		, ""
+		, "\tfor(i = in->begin(); i != in->end(); i++)"
+		, "\t{"
+		, "\t\tvisit_" ++ toVarName s ++ "(*i);"
+		, "\t}"
+		, ""
+		, "\tpost_list(\"" ++ cn' ++ "\", in->size());"
 		, "}"
 		]
 	let visitS = defMethod decl' args' [
