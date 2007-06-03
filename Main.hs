@@ -24,6 +24,7 @@ import Init
 import PatternMatching
 import DeepEquality
 import DeepCloning
+import ValidityCheck
 import Constructors
 import FactoryMethod
 
@@ -53,6 +54,7 @@ runMakeTea config grammar includes mixinCode = do
 			addPatternMatching
 			addDeepEquality
 			addDeepCloning
+			addIsValid
 			-- The mixin code can override anything we add, so it should
 			-- be added last
 			addMixin

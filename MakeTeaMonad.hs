@@ -315,7 +315,7 @@ allSuperclasses c = do
 	return (nub (c ++ ds' ++ dds))
 
 {-
- - isVector is true for Vector, VectorOpt and OptVector
+ - Is a multiplicity a vector? optional?
  -}
 
 isVector :: Multiplicity -> Bool

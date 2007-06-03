@@ -208,6 +208,11 @@ wildcardClass = do
 		, "\t\treturn value->equals(that->value);"
 		, "\t}"
 		, ""
+		, "\tvirtual bool is_valid()"
+		, "\t{"
+		, "\t\treturn (value == NULL || value->is_valid());"
+		, "\t}"
+		, ""
 		-- TODO: is this the implementation of visit and transform_children we want?
 		, "\tvirtual void visit(" ++ prefix ++ "_visitor* visitor)"
 		, "\t{"
