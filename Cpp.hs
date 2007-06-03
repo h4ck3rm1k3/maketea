@@ -188,8 +188,8 @@ findMember f cls = fromSearch (mapMembers (compareUsing f) cls)
 allMembers :: Class -> [Member]
 allMembers = findMember (const True) 
 
-hasMethod :: Name Method -> Class -> Bool 
-hasMethod name cls = not $ null (findMember (\m -> nameOf m == name) cls)
+hasMethod :: Class -> Name Method -> Bool 
+hasMethod cls name = not $ null (findMember (\m -> nameOf m == name) cls)
 
 {-
  - Does cls have a member with the same signature as the given member?

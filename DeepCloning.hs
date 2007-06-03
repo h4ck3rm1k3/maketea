@@ -10,6 +10,7 @@ import DataStructures
 import Cpp
 import MakeTeaMonad
 import Util
+import Mixin
 
 addDeepCloning :: MakeTeaMonad ()
 addDeepCloning = 
@@ -51,8 +52,8 @@ cloneMixinFrom cls = do
 		concatMapM f ext 
 	where
 		f cn = do
-			cls <- findClass cn
-			if hasMethod "clone_mixin_from" cls
+			hasM <- mixinHasMethod cn "clone_mixin_from" 
+			if hasM
 				then return ["clone->" ++ cn ++ "::clone_mixin_from(this);"]
 				else return []
 

@@ -121,6 +121,7 @@ data MakeTeaState = MTS {
 	, inheritanceGraph :: FGL.Gr (Some Symbol) ()
 	, topological :: [Some Symbol]
 	, config :: Config
+	, mixinCode :: [Class]
 	}
 
 {-

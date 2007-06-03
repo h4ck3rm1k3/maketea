@@ -49,6 +49,9 @@ withTopological f = get >>= f . topological
 withConfig :: (Config -> MakeTeaMonad a) -> MakeTeaMonad a
 withConfig f = get >>= f . config
 
+getMixin :: MakeTeaMonad [Class]
+getMixin = get >>= return . mixinCode
+
 getNextClassID :: MakeTeaMonad Integer
 getNextClassID = do
 	s <- get
@@ -91,8 +94,8 @@ getStringClass = withConfig $ return . stringClass
  - Initial state for the monad
  -}
 
-initState :: Config -> Grammar -> MakeTeaState
-initState cf gr
+initState :: Config -> Grammar -> [Class] -> MakeTeaState
+initState cf gr mixin
 	| not (null unreachable) = error $ "The inheritance hierarchy does not have a unique root.\nThe following nodes are unreachable from " ++ show (fromJust (FGL.lab ih (head top))) ++ ": " ++ show (map (fromJust . FGL.lab ih) unreachable)
 	| FGL.hasLoop ih = error $ "There are self-referential rules in some of: " ++ show (map (map (fromJust . FGL.lab ih)) (FGL.scc ih))
 	| not (null cycles) = error $ "The inheritance graph is cyclic.\nCycles: " ++ show (map (map (fromJust . FGL.lab ih)) cycles)
@@ -104,7 +107,8 @@ initState cf gr
 		, classes = Nothing
 		, inheritanceGraph = ih 
 		, topological = FGL.topsort' ih 
-		, config = cf 
+		, config = cf
+		, mixinCode = mixin
 		}
 	where
 		ih = findInheritanceGraph gr

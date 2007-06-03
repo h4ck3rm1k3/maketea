@@ -11,15 +11,19 @@ import Control.Monad.Identity
 import DataStructures
 import Cpp
 import MakeTeaMonad
+import Mixin
 
 addInit :: MakeTeaMonad ()
-addInit = withClasses $ setClasses . map addInitMethod
+addInit = do
+	cs <- withClasses $ mapM addInitMethod  
+	setClasses cs 
 
-addInitMethod :: Class -> Class
-addInitMethod cls = 
-		if hasMethod "_init" cls 
-		then runIdentity $ mapMembers addInitMethod' cls 
-		else cls
+addInitMethod :: Class -> MakeTeaMonad Class
+addInitMethod cls = do
+		hasM <- mixinHasMethod (name cls) "_init"
+		if hasM 
+			then return . runIdentity $ mapMembers addInitMethod' cls 
+			else return cls
 	where
 		addInitMethod' :: Member -> Identity Member
 		addInitMethod' m@(Method c v s (t, n) a b) | n == name cls 

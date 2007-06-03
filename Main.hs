@@ -52,16 +52,10 @@ runMakeTea config grammar includes mixinCode = do
 			addInit
 			addPatternMatching
 			addDeepEquality
+			addDeepCloning
 			-- The mixin code can override anything we add, so it should
 			-- be added last
-			addMixin mixinCode
-			-- TODO
-			-- However, deep cloning looks at the code added by the mixin
-			-- code... We should probably do this slightly different. Add 
-			-- the mixin code early, so that code that checks if the mixin
-			-- adds a particular function works, but that the mixin code so
-			-- that we can resolve conflicts before we output the code
-			addDeepCloning
+			addMixin
 			-- Order the classes so that C++ won't complain
 			orderClasses
 			-- Extract relevant components
@@ -73,7 +67,7 @@ runMakeTea config grammar includes mixinCode = do
 			wildcard <- wildcardClass
 			factory <- factoryMethod
 			return (prefix, contexts, classes, transform, visitor, wildcard, factory)
-		init = initState config grammar
+		init = initState config grammar mixinCode
 		runMaketea = evalState maketea init
 		(prefix, contexts, classes, transform, visitor, wildcard, factory) = runMaketea
 		commonHeader = unlines $ includes ++ [

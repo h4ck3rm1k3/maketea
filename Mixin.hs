@@ -12,8 +12,24 @@ import DataStructures
 import MakeTeaMonad
 import Cpp
 
-addMixin :: [Class] -> MakeTeaMonad ()
-addMixin mixinCode = do
+{-
+ - Query the mixin code
+ -}
+
+mixinHasMethod :: Name Class -> Name Method -> MakeTeaMonad Bool
+mixinHasMethod cn method = do
+	mixin <- getMixin
+	case find (\c -> name c == cn) mixin of
+		Nothing -> return False
+		Just c -> return $ c `hasMethod` method
+
+{-
+ - Add the mixin code, overriding any methods we have added
+ -}
+
+addMixin :: MakeTeaMonad ()
+addMixin = do
+	mixinCode <- getMixin 
 	cs <- withClasses (mixin mixinCode)
 	setClasses cs
 
