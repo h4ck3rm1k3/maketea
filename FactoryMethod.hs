@@ -12,15 +12,29 @@ factoryMethod = do
 	lists <- allLists
 	creates <- withConj (concatMapM createNode)
 	createLists <- concatMapM createList lists
+	createTokens <- withTokens (concatMapM createToken)
+	str <- getStringClass
 	let 
-		cmnt = []
+		cmnt = 
+			[
+			  "If type_id corresponds to " ++ prefix ++ " node, the elements in args must"
+			, "correspond to the children of the node."
+			, ""
+			, "If type_id corresponds to a list (of the form \"..._list\"),"
+			, "the elements of arg must be of the same type as the elements"
+			, "in the list, and all elements in args are added to the list."
+			, ""
+			, "If type_id corresponds to a token (terminal symbol), args must"
+			, "contain a single node of type " ++ str ++ ". Terminal symbols"
+			, "with non-default values are not supported."
+			]
 		decl = ("Object*", "create")
 		args = [("char const*", "type_id"),(listClass ++ "<Object*>*", "args")]
 		body = 
 			[
 			  listClass ++ "<Object*>::const_iterator i = args->begin();"
 			] ++
-			  creates ++ createLists
+			  creates ++ createTokens ++ createLists 
 			  ++
 			[
 			  "assert(0);"
@@ -72,3 +86,17 @@ createList s = do
 		, "}"
 		]
 
+createToken :: Symbol Terminal -> MakeTeaMonad Body
+createToken t@(Terminal _ Nothing) = do
+	cn <- toClassName t
+	str <- getStringClass
+	return $
+		[
+		  "if(!strcmp(type_id, \"" ++ cn ++ "\"))"
+		, "{"
+		, "\t" ++ str ++ "* value = dynamic_cast<" ++ str ++ "*>(*i++);"
+		, "\tassert(i == args->end());"
+		, "\treturn new " ++ cn ++ "(value);"
+		, "}"
+		]
+createToken _ = return []
