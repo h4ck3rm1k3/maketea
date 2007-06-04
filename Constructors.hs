@@ -23,6 +23,8 @@ addConstructors =
 					}
 				else return cls { sections = 
 					  Section [] Public [initConstr cls]
+					-- The NULL constructor is required so that we can
+					-- instantiate Wildcards
 					: Section [] Protected [nullConstr cls] 
 					: sections cls 
 					}
