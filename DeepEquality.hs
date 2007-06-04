@@ -10,6 +10,7 @@ import DataStructures
 import Cpp
 import MakeTeaMonad
 import Util
+import Mixin
 
 addDeepEquality :: MakeTeaMonad ()
 addDeepEquality = 
@@ -38,16 +39,28 @@ addEqualR (Conj _ body) cls = do
 	let decl = ("bool", "equals")
 	let args = [(rootCn ++ "*", "in")]
 	equalTerms <- concatMapM (elim equalTerm) body 
+	ime <- isMixinEqual cls
 	let equal = defMethod decl args $ [
 		  name cls ++ "* that = dynamic_cast<" ++ name cls ++ "*>(in);"
 		, "if(that == NULL) return false;"
 		, ""
-		] ++ equalTerms ++ [
+		] ++ equalTerms ++ ime ++ [
 		  "return true;"
 		]
 	return $ cls { 
 		  sections = sections cls ++ [Section [] Public [equal]]
 		}
+
+isMixinEqual :: Class -> MakeTeaMonad Body
+isMixinEqual cls = do
+		ext <- allExtends [name cls]
+		concatMapM f ext 
+	where
+		f cn = do
+			hasM <- mixinHasMethod cn "is_mixin_equal" 
+			if hasM
+				then return ["if(!" ++ cn ++ "::is_mixin_equal(that)) return false;"]
+				else return []
 
 equalTerm :: Term a -> MakeTeaMonad Body
 equalTerm m@(Marker _ _) = do
@@ -121,15 +134,18 @@ addEqualT t@(Terminal _ ctype) cls = do
 		, "\treturn false;"
 		, ""
 		]
+	ime <- isMixinEqual cls
 	let equal = case ctype of
 		Nothing -> defMethod decl args (
 			   equalHeader 
 			++ equalBody "value"
+			++ ime
 			++ ["return true;"]
 			)
 		Just "" -> defMethod decl args (
 			   equalHeader 
 			++ equalBody "source_rep"
+			++ ime
 			++ ["return true;"]
 			)
 		Just t -> defMethod decl args (
@@ -140,6 +156,7 @@ addEqualT t@(Terminal _ ctype) cls = do
 			, ""
 			]
 			++ equalBody "source_rep"
+			++ ime
 			++ ["return true;"]
 			)
 	let equals_value_body isP 
