@@ -174,7 +174,12 @@ bodyP =
 		let name = sourceName pos
 		let line = sourceLine pos
 		b <- body1
-		return $ "#line " ++ show line ++ " \"" ++ name ++ "\"\n" ++ b
+		-- TODO: #line directives are useful, but if we don't "restore" the
+		-- line number to AST.cpp after some user code, assertion failures
+		-- are going to be reported somewhere in the middle of (or even after)
+		-- phc.tea rather than in AST.cpp
+		-- return $ "#line " ++ show line ++ " \"" ++ name ++ "\"\n" ++ b
+		return b
 
 body1 :: Parser String
 body1 = 

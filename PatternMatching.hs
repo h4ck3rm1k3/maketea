@@ -208,9 +208,9 @@ wildcardClass = do
 		, "\t\treturn value->equals(that->value);"
 		, "\t}"
 		, ""
-		, "\tvirtual bool is_valid()"
+		, "\tvirtual void assert_valid()"
 		, "\t{"
-		, "\t\treturn (value == NULL || value->is_valid());"
+		, "\t\tif(value != NULL) value->assert_valid();"
 		, "\t}"
 		, ""
 		-- TODO: is this the implementation of visit and transform_children we want?

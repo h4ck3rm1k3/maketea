@@ -25,28 +25,28 @@ addIsValid =
 
 addValidR :: Rule a -> Class -> MakeTeaMonad Class
 addValidR (Disj _ _) cls = do
-	let valid = PureVirtual [] ("bool", "is_valid") []
+	let valid = PureVirtual [] ("void", "assert_valid") []
 	return $ cls { 
 		  sections = sections cls ++ [Section [] Public [valid]]
 		}
 addValidR (Conj _ body) cls = do
-	let decl = ("bool", "is_valid")
+	let decl = ("void", "assert_valid")
 	validTerms <- concatMapM validTerm (nonMarkers body)
-	imv <- isMixinValid cls
-	let valid = defMethod decl [] $ validTerms ++ imv ++ ["return true;"]
+	amv <- assertMixinValid cls
+	let valid = defMethod decl [] $ validTerms ++ amv 
 	return $ cls { 
 		  sections = sections cls ++ [Section [] Public [valid]]
 		}
 
-isMixinValid :: Class -> MakeTeaMonad Body
-isMixinValid cls = do
+assertMixinValid :: Class -> MakeTeaMonad Body
+assertMixinValid cls = do
 		ext <- allExtends [name cls]
 		concatMapM f ext 
 	where
 		f cn = do
-			hasM <- mixinHasMethod cn "is_mixin_valid" 
+			hasM <- mixinHasMethod cn "assert_mixin_valid" 
 			if hasM
-				then return ["if(!" ++ cn ++ "::is_mixin_valid()) return false;"]
+				then return ["" ++ cn ++ "::assert_mixin_valid();"]
 				else return []
 
 validTerm :: Term NonMarker -> MakeTeaMonad Body
@@ -54,25 +54,27 @@ validTerm t@(Term _ _ Single) = do
 	let vn = toVarName t
 	return
 		[
-		  "if(" ++ vn ++ " == NULL || !" ++ vn ++ "->is_valid()) return false;"
+		  "assert(" ++ vn ++ " != NULL);"
+		, "" ++ vn ++ "->assert_valid();"
 		]
 validTerm t@(Term _ _ Optional) = do 
 	let vn = toVarName t
 	return
 	 	[
-		  "if(" ++ vn ++ " != NULL && !" ++ vn ++ "->is_valid()) return false;"
+		  "if(" ++ vn ++ " != NULL) " ++ vn ++ "->assert_valid();"
 		]
 validTerm t@(Term _ _ Vector)  = do
 	let vn = toVarName t
 	cn <- toClassName t
 	return 
 		[
-		  "if(" ++ vn ++ " == NULL) return false;"
+		  "assert(" ++ vn ++ " != NULL);"
 		, "{"
 		, "\t" ++ cn ++ "::const_iterator i;"
 		, "\tfor(i = this->" ++ vn ++ "->begin(); i != this->" ++ vn ++ "->end(); i++)" 
 		, "\t{"
-		, "\t\tif(*i == NULL || !(*i)->is_valid()) return false;"
+		, "\t\tassert(*i != NULL);"
+		, "\t\t(*i)->assert_valid();"
 		, "\t}"
 		, "}"
 		]
@@ -85,7 +87,10 @@ validTerm t@(Term _ _ OptVector)  = do
 		, "{"
 		, "\t" ++ cn ++ "::const_iterator i;"
 		, "\tfor(i = this->" ++ vn ++ "->begin(); i != this->" ++ vn ++ "->end(); i++)" 
-		, "\t\tif(*i == NULL || !(*i)->is_valid()) return false;"
+		, "\t{"
+		, "\t\tassert(*i != NULL);"
+		, "\t\t(*i)->assert_valid();"
+		, "\t}"
 		, "}"
 		]
 validTerm t@(Term _ _ VectorOpt)  = do
@@ -93,35 +98,35 @@ validTerm t@(Term _ _ VectorOpt)  = do
 	cn <- toClassName t
 	return 
 		[
-		  "if(" ++ vn ++ " == NULL) return false;"
+		  "assert(" ++ vn ++ " != NULL);"
 		, "{"
 		, "\t" ++ cn ++ "::const_iterator i;"
 		, "\tfor(i = this->" ++ vn ++ "->begin(); i != this->" ++ vn ++ "->end(); i++)" 
-		, "\t\tif(*i != NULL && !(*i)->is_valid()) return false;"
+		, "\t{"
+		, "\t\tif(*i != NULL) (*i)->assert_valid();"
+		, "\t}"
 		, "}"
 		]
 
 addValidT :: Symbol Terminal -> Class -> MakeTeaMonad Class
 addValidT t@(Terminal _ ctype) cls = do
-	let decl = ("bool", "is_valid")
-	imv <- isMixinValid cls
+	let decl = ("void", "assert_valid")
+	amv <- assertMixinValid cls
 	let valid = case ctype of
 		Nothing -> defMethod decl [] $ 
 			[
-			  "if(value == NULL) return false;"
-			] ++ imv ++ ["return true;"]
+			  "assert(value != NULL);"
+			] ++ amv 
 		Just "" -> defMethod decl [] $ 
 			[
-			  "if(source_rep == NULL) return false;"
-			] ++ imv ++ ["return true;"]
+			] ++ amv 
 		Just t -> defMethod decl [] $ 
 			[
-			  "if(source_rep == NULL) return false;"
-			, "if(!is_value_valid()) return false;"
-			] ++ imv ++ ["return true;"]
-	let is_value_valid = defMethod ("bool", "is_value_valid") [] ["return true;"] 
+			  "assert_value_valid();"
+			] ++ amv 
+	let assert_value_valid = defMethod ("void", "assert_value_valid") [] ["// Assume value is valid"] 
 	let methods = case ctype of
-		Just t@(_:_) -> [valid,is_value_valid]
+		Just t@(_:_) -> [valid,assert_value_valid]
 		_ -> [valid]
 	return $ cls {
 		  sections = sections cls ++ [Section [] Public methods]
