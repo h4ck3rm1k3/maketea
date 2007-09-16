@@ -61,17 +61,18 @@ runMakeTea config grammar includes mixinCode = do
 			-- Order the classes so that C++ won't complain
 			orderClasses
 			-- Extract relevant components
-			prefix <- getPrefix
-			contexts <- withContexts return
-			classes <- withClasses return
+			prefix    <- getPrefix
+			useNamesp <- getUseNamespace
+			contexts  <- withContexts return
+			classes   <- withClasses $ filterM (liftM not . isExternal . name)
 			transform <- transformClass
-			visitor <- visitorClass
-			wildcard <- wildcardClass
-			factory <- factoryMethod
-			return (prefix, contexts, classes, transform, visitor, wildcard, factory)
+			visitor   <- visitorClass
+			wildcard  <- wildcardClass
+			factory   <- factoryMethod
+			return (prefix, useNamesp, contexts, classes, transform, visitor, wildcard, factory)
 		init = initState config grammar mixinCode
 		runMaketea = evalState maketea init
-		(prefix, contexts, classes, transform, visitor, wildcard, factory) = runMaketea
+		(prefix, useNamespace, contexts, classes, transform, visitor, wildcard, factory) = runMaketea
 		commonHeader = unlines $ includes ++ [
 			  "#include <list>"
 			, "#include <string>"
@@ -79,6 +80,10 @@ runMakeTea config grammar includes mixinCode = do
 			, "using namespace std;"
 			, ""
 			]
+		namespace :: String -> String
+		namespace = case useNamespace of
+			False -> id
+			True  -> \body -> "namespace " ++ prefix ++ "{\n" ++ body ++ "}\n" 
 	-- And create output
 	writeFile (prefix ++ "-contexts") $ unlines (map show contexts)
 	writeFile (prefix ++ ".h") $ unlines [
@@ -86,13 +91,15 @@ runMakeTea config grammar includes mixinCode = do
 		, "#define _" ++ prefix ++ "_H_"
 		, ""
 		, commonHeader
-		, unlines (map (\c -> "class " ++ c ++ ";") (map name classes))
+		] ++ (namespace $ unlines [
+		  unlines (map (\c -> "class " ++ c ++ ";") (map name classes))
 		, "class " ++ prefix ++ "_transform;"
 		, "class " ++ prefix ++ "_visitor;"
 		, ""
 		, unlines (map showClassHeader classes)
 		, unlines wildcard
-		, ""
+		]) ++ unlines [ 
+		  ""
 		, "#endif"
 		]
 	writeFile (prefix ++ ".cpp") $ unlines [
@@ -100,7 +107,7 @@ runMakeTea config grammar includes mixinCode = do
 		, "#include \"" ++ prefix ++ "_transform.h\""
 		, "#include \"" ++ prefix ++ "_visitor.h\""
 		, ""
-		, unlines (map showClassImplementation classes)
+		, namespace $ unlines (map showClassImplementation classes)
 		]
 	writeFile (prefix ++ "_transform.h") $ unlines [
 		   "#ifndef _" ++ prefix ++ "_TRANSFORM_H_"
@@ -109,14 +116,14 @@ runMakeTea config grammar includes mixinCode = do
 		, commonHeader
 		, "#include \"" ++ prefix ++ ".h\""
 		, ""
-		, showClassHeader transform
+		, namespace $ showClassHeader transform
 		, ""
 		, "#endif"
 		]
 	writeFile (prefix ++ "_transform.cpp") $ unlines [
 		  "#include \"" ++ prefix ++ "_transform.h\""
 		, ""
-		, showClassImplementation transform
+		, namespace $ showClassImplementation transform
 		]
 	writeFile (prefix ++ "_visitor.h") $ unlines [
 	      "#ifndef _" ++ prefix ++ "_VISITOR_H_"
@@ -125,14 +132,14 @@ runMakeTea config grammar includes mixinCode = do
 		, commonHeader
 		, "#include \"" ++ prefix ++ ".h\""
 		, ""
-		, showClassHeader visitor 
+		, namespace $ showClassHeader visitor 
 		, ""
 		, "#endif"
 		]
 	writeFile (prefix ++ "_visitor.cpp") $ unlines [
 		  "#include \"" ++ prefix ++ "_visitor.h\""
 		, ""
-		, showClassImplementation visitor 
+		, namespace $ showClassImplementation visitor 
 		]
 	writeFile (prefix ++ "_factory.h") $ unlines [
 	      "#ifndef _" ++ prefix ++ "_FACTORY_H_"
@@ -141,12 +148,12 @@ runMakeTea config grammar includes mixinCode = do
 		, commonHeader
 		, "#include \"" ++ prefix ++ ".h\""
 		, ""
-		, showClassHeader factory 
+		, namespace $ showClassHeader factory 
 		, ""
 		, "#endif"
 		]
 	writeFile (prefix ++ "_factory.cpp") $ unlines [
 		  "#include \"" ++ prefix ++ "_factory.h\""
 		, ""
-		, showClassImplementation factory
+		, namespace $ showClassImplementation factory
 		]

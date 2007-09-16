@@ -77,8 +77,23 @@ reduce ((i1,t1,m1):(i2,t2,m2):cs)
 
 resolve :: Context -> Context -> MakeTeaMonad Context
 resolve (i,t1,m1) (_,t2,m2) = do
-	(Just t) <- elim2 commonInstance t1 t2
+	t <- elim3 classMeet i t1 t2
 	return (i,t,multMeet m1 m2)
+
+{-
+ - When a symbol X is used in two contexts Y and Z (with X <: Y and X <: Z),
+ - then we want to find the most general class A such that X <: A and 
+ - A <: Y, A <: Z.
+ -}
+
+classMeet :: Symbol x -> Symbol y -> Symbol z -> MakeTeaMonad (Some Symbol)
+classMeet x y z = do
+	super_x <- allSuperclasses [Exists x]
+	inst_y  <- allInstances y
+	inst_z  <- allInstances z
+	let common_inst = inst_y `intersect` inst_z 
+	    meet        = common_inst `intersect` super_x
+	return (head meet) -- we want the most general
 
 {-
  - The meet m of two multiplicities is defined such that if we have two

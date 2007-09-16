@@ -45,6 +45,7 @@ configP =
 			, external_classes = []
 			, listClass = "list"
 			, stringClass = "string"
+			, useNamespace = False
 			}
 
 settingP :: Parser (Config -> Config)
@@ -76,6 +77,11 @@ settingP =
 				id <- stringLiteral
 				reservedOp ";"
 				return (\c -> c { stringClass = id}) 
+			<|>
+			do
+				reserved "namespace"
+				reservedOp ";"
+				return (\c -> c { useNamespace = True})
 			)
 
 {-

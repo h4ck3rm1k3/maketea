@@ -7,6 +7,7 @@
 module Util where
 
 import Data.Maybe
+import Debug.Trace
 
 {-
  - Existentials
@@ -20,6 +21,9 @@ elim f (Exists t) = f t
 
 elim2 :: (forall a b. t a -> t b -> c) -> Some t -> Some t -> c
 elim2 f (Exists t) (Exists t') = f t t'
+
+elim3 :: (forall a b c. t a -> t b -> t c -> d) -> Some t -> Some t -> Some t -> d
+elim3 f (Exists t) (Exists t') (Exists t'') = f t t' t''
 
 {-
  - Search monad
@@ -85,3 +89,10 @@ concatMapM f (a:as) = do
 fromJustM :: Monad m => String -> Maybe a -> m a
 fromJustM err (Just a) = return a
 fromJustM err Nothing = fail err
+
+{-
+ - Debugging
+ -}
+
+trace_ :: Monad m => String -> m ()
+trace_ str = trace str return ()
