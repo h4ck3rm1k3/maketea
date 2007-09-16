@@ -133,5 +133,5 @@ data Config = Config {
 	, external_classes :: [Name Class]
 	, listClass :: String
 	, stringClass :: String
-	, useNamespace :: Bool
+	, namespace :: Maybe String 
 	}

@@ -90,8 +90,8 @@ getListClass = withConfig $ return . listClass
 getStringClass :: MakeTeaMonad String
 getStringClass = withConfig $ return . stringClass
 
-getUseNamespace :: MakeTeaMonad Bool
-getUseNamespace = withConfig $ return . useNamespace
+getNamespace :: MakeTeaMonad (Maybe String) 
+getNamespace = withConfig $ return . namespace 
 
 {-
  - Initial state for the monad
