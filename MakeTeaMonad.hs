@@ -32,13 +32,13 @@ withTokens :: ([Symbol Terminal] -> MakeTeaMonad a) -> MakeTeaMonad a
 withTokens f = withGrammar $ f . allTokens 
 
 withClasses :: ([Class] -> MakeTeaMonad a) -> MakeTeaMonad a
-withClasses f = get >>= f . fromJust . classes 
+withClasses f = get >>= fromJustM "withClasses" . classes >>= f 
 
 withContexts :: ([Context] -> MakeTeaMonad a) -> MakeTeaMonad a
-withContexts f = get >>= f . fromJust . contexts
+withContexts f = get >>= fromJustM "withContexts" . contexts >>= f
 
 withOrigContexts :: ([Context] -> MakeTeaMonad a) -> MakeTeaMonad a
-withOrigContexts f = get >>= f . fromJust . origContexts
+withOrigContexts f = get >>= fromJustM "withOrigContexts" . origContexts >>= f
 
 withSymbols :: ([Some Symbol] -> MakeTeaMonad a) -> MakeTeaMonad a
 withSymbols f = withGrammar $ f . allSymbols
@@ -98,12 +98,11 @@ getNamespace = withConfig $ return . namespace
  -}
 
 initState :: Config -> Grammar -> [Class] -> MakeTeaState
-initState cf gr mixin
-	| not (null unreachable) = error $ "The inheritance hierarchy does not have a unique root.\nThe following nodes are unreachable from " ++ show (fromJust (FGL.lab ih (head top))) ++ ": " ++ show (map (fromJust . FGL.lab ih) unreachable)
+initState cf primGr mixin
 	| FGL.hasLoop ih = error $ "There are self-referential rules in some of: " ++ show (map (map (fromJust . FGL.lab ih)) (FGL.scc ih))
 	| not (null cycles) = error $ "The inheritance graph is cyclic.\nCycles: " ++ show (map (map (fromJust . FGL.lab ih)) cycles)
 	| otherwise = MTS {
-		  grammar = gr
+		  grammar = gr 
 		, nextClassID = 1 
 		, contexts = Nothing
 		, origContexts = Nothing
@@ -114,18 +113,32 @@ initState cf gr mixin
 		, mixinCode = mixin
 		}
 	where
-		ih = findInheritanceGraph gr
+		-- Build up a preliminary inheritance graph so we can find its roots
+		prelimIH    = findInheritanceGraph primGr
+		prelimRoots = roots prelimIH
+		-- Add a new rule "node ::= [roots]"
+		rootRule    = Disj (NonTerminal (rootName cf)) prelimRoots
+		gr          = Exists rootRule : primGr
+		-- Rebuild the inheritance graph using the new grammar
+		ih          = findInheritanceGraph gr
+		-- Do a topological sort (used in the context resolution to order
+		-- the *original* contexts -- that information is then used when
+		-- creating the basic classes, although I'm not yet sure exactly how)
 		top = FGL.topsort ih
-		reachable = FGL.bfs (head top) ih
-		unreachable = FGL.nodes ih \\ reachable
+		-- Check if there are any cycles
 		cycles = filter ((> 1) . length) (FGL.scc (FGL.trc ih))
+
+-- Find all roots of a graph
+roots :: FGL.Gr a b -> [a]
+roots gr = map (fromJust . FGL.lab gr) $ 
+             filter (\n -> FGL.indeg gr n == 0) (FGL.nodes gr)
 
 findInheritanceGraph :: Grammar -> FGL.Gr (Some Symbol) () 
 findInheritanceGraph grammar = 
 	let 
 		labels = [(s,no) | s <- allSymbols grammar | no <- [1..]]
-		labelFor s = fromJust (lookup s labels)
-		nodes = map (\(a,b) -> (b,a)) labels
+		labelFor s = fromMaybe (error $ "cannot find \"" ++ show s ++ "\"") (lookup s labels)
+		nodes = map swap labels
 		edges = concatMap edgesFor (disjunctions grammar) 
 		edgesFor (Disj nt body) =
 			let lr = labelFor (Exists nt) 
@@ -390,7 +403,7 @@ allLists =
  -}
 
 rootSymbol :: MakeTeaMonad (Some Symbol)
-rootSymbol = withTopological $ return . head
+rootSymbol = withConfig $ \c -> return (Exists (NonTerminal (rootName c)))
 
 {-
  - Find the name of stuff

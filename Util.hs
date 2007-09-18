@@ -67,7 +67,10 @@ implies :: (a -> Bool) -> (a -> Bool) -> a -> Bool
 f `implies` g = \a -> not (f a) || g a
 
 lookup' :: Eq a => a -> [(a,b)] -> b
-lookup' key = fromJust . lookup key
+lookup' key = fromMaybe (error "lookup'") . lookup key
+
+swap :: (a, b) -> (b, a)
+swap (a, b) = (b, a)
 
 -- Comma-separate a list of strings
 flattenComma :: [String] -> String

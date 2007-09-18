@@ -46,6 +46,7 @@ configP =
 			, listClass = "list"
 			, stringClass = "string"
 			, namespace = Nothing 
+			, rootName = "node"
 			}
 
 settingP :: Parser (Config -> Config)
@@ -83,6 +84,12 @@ settingP =
 				id <- stringLiteral
 				reservedOp ";"
 				return (\c -> c { namespace = Just id})
+			<|>
+			do
+				reserved "root"
+				id <- stringLiteral
+				reservedOp ";"
+				return (\c -> c { rootName = id })
 			)
 
 {-

@@ -134,4 +134,5 @@ data Config = Config {
 	, listClass :: String
 	, stringClass :: String
 	, namespace :: Maybe String 
+	, rootName :: String
 	}
