@@ -106,8 +106,8 @@ multMeet :: Multiplicity -> Multiplicity -> Multiplicity
 multMeet m1 m2 | m1 == m2 = m1
 multMeet Single _ = Single
 multMeet Optional Vector = Single
-multMeet Optional VectorOpt = Optional
-multMeet Optional OptVector = Single
+multMeet Optional VectorOpt = Single 
+multMeet Optional OptVector = Optional 
 multMeet Vector VectorOpt = Vector
 multMeet Vector OptVector = Vector
 multMeet VectorOpt OptVector = Vector
