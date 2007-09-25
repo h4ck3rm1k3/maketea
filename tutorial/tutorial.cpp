@@ -1,10 +1,15 @@
 #include <iostream>
+#include "AST.h"
 
 using namespace std;
 
 int yyparse();
+extern AST_program* program; 
 
 int main()
 {
-	return yyparse();
+	if(yyparse()) return -1;
+	cout << "yeah" << endl;
+
+	return 0;
 }
