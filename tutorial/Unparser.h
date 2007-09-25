@@ -26,6 +26,11 @@ public:
 			<< *add->right->value << ";" << endl;
 	}
 
+	void post_print(AST_print* print)
+	{
+		cout << indent << "print " << *print->var->value << ";" << endl; 
+	}
+
 	void pre_while(AST_while* wh)
 	{
 		cout << indent << "while " << *wh->var->value << " {" << endl;

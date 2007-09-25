@@ -7,11 +7,12 @@ use string "String" ;
 -- Grammar
 
 program    ::= statement* ;
-statement  ::= assignment | while ;
+statement  ::= assignment | while | print ;
 assignment ::= literal | add ;
 while      ::= VAR statement* ;
 literal    ::= lhs:VAR INTEGER<long> ;
 add        ::= lhs:VAR left:VAR right:VAR ; 
+print      ::= VAR ;
 
 -- Mixin code
 

@@ -24,10 +24,12 @@
 	AST_while* ast_while;
 	AST_literal* ast_literal;
 	AST_add* ast_add;
+	AST_print* ast_print;
 }
 
 %token ASSIGN
 %token WHILE
+%token PRINT
 %token <token_integer> INT
 %token <token_var> VAR
 
@@ -37,6 +39,7 @@
 %type <ast_while> while
 %type <ast_literal> literal
 %type <ast_add> add
+%type <ast_print> print
 
 %%
 
@@ -56,6 +59,8 @@ statement:
 	  	{ $$ = $1; }
 	| while
 		{ $$ = $1; }
+	| print
+		{ $$ = $1; } 
 	;
 
 assignment:
@@ -68,6 +73,9 @@ assignment:
 while: WHILE VAR '{' statement_list '}'
 		{ $$ = new AST_while($2, $4); } 
 	;
+
+print: PRINT VAR ';' 
+		{ $$ = new AST_print($2); }
 
 literal: VAR ASSIGN INT ';' 
 		{ $$ = new AST_literal($1, $3); }
