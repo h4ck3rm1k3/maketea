@@ -1,5 +1,6 @@
 #include <iostream>
 #include "AST.h"
+#include "Unparser.h"
 
 using namespace std;
 
@@ -9,7 +10,9 @@ extern AST_program* program;
 int main()
 {
 	if(yyparse()) return -1;
-	cout << "yeah" << endl;
+	
+	Unparser unparser;
+	program->visit(&unparser);
 
 	return 0;
 }
