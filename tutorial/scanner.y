@@ -12,9 +12,6 @@
 	AST_program* program;
 %}
 
-%error-verbose
-%defines
-
 %union {
 	Token_var* token_var;
 	Token_integer* token_integer;

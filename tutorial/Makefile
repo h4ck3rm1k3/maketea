@@ -1,7 +1,7 @@
 CFLAGS=-I.
 CXXFLAGS=${CFLAGS}
 CC=g++ -ggdb3 ${CFLAGS} 
-YACC=bison -y
+YACC=bison -y -d
 
 tutorial: tutorial.o AST.o AST_factory.o AST_transform.o AST_visitor.o lib/String.o lib/AttrMap.o lib/Boolean.o lib/Integer.o lexer.o scanner.o Unparser.h lib/demangle.o 
 
