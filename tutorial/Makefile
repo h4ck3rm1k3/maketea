@@ -1,4 +1,4 @@
-CFLAGS=-I. -Ilib
+CFLAGS=-I.
 CXXFLAGS=${CFLAGS}
 CC=g++ -ggdb3 ${CFLAGS} 
 
