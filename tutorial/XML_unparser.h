@@ -14,12 +14,12 @@ public:
 		cout << "</" << demangle(node) << ">" << endl; 
 	}
 
-	void children_var(Token_var* var)
+	void pre_var(Token_var* var)
 	{
 		cout << *var->value << endl;
 	}
 
-	void children_integer(Token_integer* integer)
+	void pre_integer(Token_integer* integer)
 	{
 		cout << integer->value << endl;
 	}
