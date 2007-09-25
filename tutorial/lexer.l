@@ -1,10 +1,12 @@
 /*
-	Lexical analyser
-*/
+ * Lexical analyser
+ */
+	
+	#include "y.tab.h"
 
 %option noyywrap
 
 %%
 
-[a-z]+	printf("[%s]\n", yytext); 
+[a-z]+	return VAR;	
 .		// ignore

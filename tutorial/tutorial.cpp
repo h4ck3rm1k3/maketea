@@ -2,9 +2,9 @@
 
 using namespace std;
 
-int yylex();
+int yyparse();
 
 int main()
 {
-	while(yylex()) ;
+	return yyparse();
 }
