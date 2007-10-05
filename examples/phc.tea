@@ -1,11 +1,11 @@
 {-
-	phc -- the open source PHP compiler
-	See doc/license/README.license for licensing information
-
-	The phc grammar in .tea format. 
-	
-	This is the authoritative grammar for phc. 
--}
+ - phc -- the open source PHP compiler
+ - See doc/license/README.license for licensing information
+ -
+ - The phc grammar in .tea format. 
+ -
+ - This is the authoritative grammar for phc. 
+ -}
 
 {-
 	Configuration
@@ -15,18 +15,27 @@ prefix "AST";
 external class "Object";
 use list "List";
 use string "String";
+use namespace "AST";
 
 {-
-	Top-level structure
+   Top-level structure	
 -}
 
-php_script ::= interface_def* class_def+ ;
+php_script ::= statement* ;
 
-interface_def ::= INTERFACE_NAME extends:INTERFACE_NAME* member* ;
+statement ::=
+     class_def | interface_def | method  
+   | if | while | do | for | foreach 
+   | switch | break | continue | return
+   | static_declaration | global
+   | declare | try | throw | eval_expr | nop 
+	| label | goto | branch ;
 
 class_def ::= 
    class_mod CLASS_NAME extends:CLASS_NAME? implements:INTERFACE_NAME* member* ;
 class_mod ::= "abstract"? "final"? ;
+
+interface_def ::= INTERFACE_NAME extends:INTERFACE_NAME* member* ;
 
 member ::= method | attribute ;
 
@@ -34,17 +43,14 @@ method ::= signature statement*? ;
 signature ::= method_mod is_ref:"&"? METHOD_NAME formal_parameter* ;
 method_mod ::= "public"? "protected"? "private"? "static"? "abstract"? "final"? ;
 formal_parameter ::= type is_ref:"&"? VARIABLE_NAME expr? ;
-type ::= "array"? CLASS_NAME? ;
+type ::= CLASS_NAME? ;
 
 attribute ::= attr_mod VARIABLE_NAME expr? ;
 attr_mod ::= "public"? "protected"? "private"? "static"? "const"?  ;
 
-statement ::=
-     if | while | do | for | foreach 
-   | switch | break | continue | return
-   | static_declaration
-   | unset | declare | try | throw | eval_expr 
-	| nop ;
+{-
+   Statements
+-}
 
 if ::= expr iftrue:statement* iffalse:statement* ;
 while ::= expr statement* ;
@@ -59,7 +65,7 @@ continue ::= expr? ;
 return ::= expr? ;
 
 static_declaration ::= VARIABLE_NAME expr? ;
-unset ::= variable ;
+global ::= variable_name ;
 
 declare ::= directive+ statement* ;
 directive ::= DIRECTIVE_NAME expr ;
@@ -72,20 +78,34 @@ eval_expr ::= expr ;
 
 nop ::= ;
 
+{-
+   HIR constructs (without a PHP equivalent)
+-}
+
+branch ::= expr iftrue:LABEL_NAME iffalse:LABEL_NAME;
+goto ::= LABEL_NAME ;
+label ::= LABEL_NAME ;
+
+{-
+   Expressions
+-}
+
 expr ::=
-     assignment | list_assignment | cast | unary_op | bin_op | conditional_expr
+     assignment | op_assignment | list_assignment 
+   | cast | unary_op | bin_op | conditional_expr
    | ignore_errors | constant | instanceof
    | variable | pre_op | post_op | array
-   | method_invocation | new | clone
+   | method_invocation | new 
 	| literal ;
 	
-literal ::= INT<int> | REAL<double> | STRING<String*> | BOOL<bool> | NULL<> ;
+literal ::= INT<long> | REAL<double> | STRING<String*> | BOOL<bool> | NULL<> ;
    
 assignment ::= variable is_ref:"&"? expr ;
+op_assignment ::= variable OP expr ;
 
-list_assignment ::= list_elements expr ;
-list_elements ::= list_element?* ;
-list_element ::= variable | list_elements ;
+list_assignment ::= list_element?* expr ;
+list_element ::= variable | nested_list_elements ;
+nested_list_elements ::= list_element?* ;
 
 cast ::= CAST expr ;
 unary_op ::= OP expr ;
@@ -94,11 +114,11 @@ bin_op ::= left:expr OP right:expr ;
 conditional_expr ::= cond:expr iftrue:expr iffalse:expr ;
 ignore_errors ::= expr ;
 
-constant ::= CLASS_NAME CONSTANT_NAME ;
+constant ::= CLASS_NAME? CONSTANT_NAME ;
 
 instanceof ::= expr class_name ;
 
-variable ::= target? variable_name array_indices:expr?* string_index:expr? ;
+variable ::= target? variable_name array_indices:expr?* ;
 variable_name ::= VARIABLE_NAME | reflection ;
 reflection ::= expr ;
 
@@ -110,7 +130,7 @@ post_op ::= variable OP ;
 array ::= array_elem* ;
 array_elem ::= key:expr? is_ref:"&"? val:expr ;
 
-method_invocation ::= target method_name actual_parameter* ;
+method_invocation ::= target? method_name actual_parameter* ;
 method_name ::= METHOD_NAME | reflection ;
 
 actual_parameter ::= is_ref:"&"? expr ;
@@ -118,19 +138,9 @@ actual_parameter ::= is_ref:"&"? expr ;
 new ::= class_name actual_parameter* ;
 class_name ::= CLASS_NAME | reflection ;
 
-clone ::= expr ;
-
 {-
-	Additional structure 
--}
-
-node ::= 
-	  php_script | class_mod | signature 
-	| method_mod | formal_parameter | type | attr_mod 
-	| directive | list_element | variable_name | target
-	| array_elem | method_name | actual_parameter | class_name 
-	| commented_node | expr | identifier 
-	;
+ - Additional structure 
+ -}
 
 commented_node ::= 
 	  member | statement | interface_def | class_def | switch_case | catch 
@@ -139,11 +149,12 @@ commented_node ::=
 identifier ::=
 	  INTERFACE_NAME | CLASS_NAME | METHOD_NAME | VARIABLE_NAME 
 	| DIRECTIVE_NAME | CAST | OP | CONSTANT_NAME
+	| LABEL_NAME
 	;  
 
 {-
-	Extra attributes and methods
--}
+ - Extra attributes and methods (mixin code)
+ -}
 
 #include <iostream>
 #include <sstream>
@@ -184,9 +195,51 @@ public:
 		// abstract, it won't add a constructor itself
 		attrs = new AttrMap();
 	}
+
+	void clone_mixin_from(AST_node* in)
+	{
+		attrs = in->attrs->clone();
+	}
+
+	void assert_mixin_valid()
+	{
+		assert(attrs != NULL);
+
+		AttrMap::const_iterator i;
+		for(i = attrs->begin(); i != attrs->end(); i++)
+		{
+			if ((*i).first != "phc.line_number"
+				&& (*i).first != "phc.filename")
+			{
+				assert((*i).second != NULL);
+			}
+		}
+	}
+
+	bool is_mixin_equal(AST_node* in)
+	{
+		// Compare line number and filename
+		// (We can't compare the entire attrs map because Object cannot
+		// necessarily be compared for equality)
+
+		if(get_line_number() != in->get_line_number())
+			return false;
+
+		if(get_filename() == NULL)
+		{
+			if(in->get_filename() != NULL)
+				return false;
+		}
+		else
+		{
+			if(*get_filename() != *in->get_filename())
+				return false;
+		}
+
+		return true;
+	}
 };
 
-{-
 class AST_commented_node 
 {
 public:
@@ -203,7 +256,6 @@ public:
 		return comments;
 	}
 };
--}
 
 class AST_signature 
 {
@@ -213,13 +265,23 @@ public:
 		this->method_mod = AST_method_mod::new_PUBLIC();
 		this->is_ref = false;
 		this->method_name = new Token_method_name(new String(name));
-		this->formal_parameters = new list<AST_formal_parameter*>;
+		this->formal_parameters = new List<AST_formal_parameter*>;
 	}
 };
 
 class AST_method_mod 
 {
 public:
+	AST_method_mod()
+	{
+		is_public = false;
+		is_protected = false;
+		is_private = false;
+		is_static = false;
+		is_abstract = false;
+		is_final = false;
+	}
+
 	AST_method_mod(AST_method_mod* a, AST_method_mod* b) 
 	{
 		this->is_public 		= a->is_public		|| b->is_public;
@@ -261,31 +323,6 @@ public:
 	}
 };
 
-class AST_php_script
-{
-public:
-	AST_php_script()
-	{
-		interface_defs = new list<AST_interface_def*>;
-		class_defs = new list<AST_class_def*>;
-		class_defs->push_back(new AST_class_def("%MAIN%"));
-	}
-
-	// Returns NULL if the class could not be found
-	AST_class_def* get_class_def(const char* name)
-	{
-		list<AST_class_def*>::const_iterator i;
-		for(i = class_defs->begin(); i != class_defs->end(); i++)
-		{
-			AST_class_def* class_def = dynamic_cast<AST_class_def*>(*i);
-			if(class_def && *class_def->class_name->value == name)
-				return class_def;
-		}
-	
-		return NULL;
-	}
-};
-
 class AST_class_def
 {
 public:
@@ -294,17 +331,17 @@ public:
 		this->class_mod = mod;
 		this->class_name = NULL;
 		this->extends = NULL;
-		this->implements = new list<Token_interface_name*>;
-		this->members = new list<AST_member*>;
+		this->implements = new List<Token_interface_name*>;
+		this->members = new List<AST_member*>;
 	}
 
-	AST_class_def(char* name)
+	AST_class_def(const char* name)
 	{
 		this->class_mod = new AST_class_mod(false, false);
 		this->class_name = new Token_class_name(new String(name));
 		this->extends = NULL;
-		this->implements = new list<Token_interface_name*>;
-		this->members = new list<AST_member*>;
+		this->implements = new List<Token_interface_name*>;
+		this->members = new List<AST_member*>;
 	}
 
 	void add_member(AST_member* member) 
@@ -315,7 +352,7 @@ public:
 	// Returns NULL if the method could not be found
 	AST_method* get_method(const char* name)
 	{
-		list<AST_member*>::const_iterator i;
+		List<AST_member*>::const_iterator i;
 		for(i = members->begin(); i != members->end(); i++)
 		{
 			AST_method* method = dynamic_cast<AST_method*>(*i);
@@ -327,6 +364,15 @@ public:
 	}
 };
 
+class AST_eval_expr
+{
+public:
+	void _init()
+	{
+		assert (expr != NULL);
+	}
+};
+
 class AST_variable
 {
 public:
@@ -334,55 +380,26 @@ public:
 	{
 		this->target = NULL;
 		this->variable_name = name;
-		this->array_indices = new list<AST_expr*>;
-		this->string_index = NULL;
-	}
-	
-	void _init()
-	{
-		attrs->set("phc.parser.is_ref", new Boolean(false));
-		attrs->set("phc.parser.function_params", NULL);
-	}
-};
-
-class AST_assignment 
-{
-public:
-	void _init()
-	{
-		attrs->set("phc.unparser.is_global_stmt", new Boolean(false));
+		this->array_indices = new List<AST_expr*>;
 	}
 };
 
 class AST_method_invocation
 {
-protected:
-	// For internal use only!
+public:
 	AST_method_invocation(const char* name, AST_expr* arg) 
 	{ 
-		// This leaves the tree in an inconsistent state
 		this->target = NULL;
 		this->method_name = new Token_method_name(new String(name));
-		this->actual_parameters = new list<AST_actual_parameter*>;
+		this->actual_parameters = new List<AST_actual_parameter*>;
 		this->actual_parameters->push_back(new AST_actual_parameter(false, arg));
 	}
 
-	// For internal use only!
 	AST_method_invocation(Token_method_name* name, AST_expr* arg) 
 	{ 
 		this->target = NULL;
 		this->method_name = name; 
-		this->actual_parameters = new list<AST_actual_parameter*>;
-		this->actual_parameters->push_back(new AST_actual_parameter(false, arg));
-	}
-
-public:
-	// This does in fact create a valid subtree
-	AST_method_invocation(const char* target, const char* name, AST_expr* arg)
-	{
-		this->target = new Token_class_name(new String(target));
-		this->method_name = new Token_method_name(new String(name));
-		this->actual_parameters = new list<AST_actual_parameter*>;
+		this->actual_parameters = new List<AST_actual_parameter*>;
 		this->actual_parameters->push_back(new AST_actual_parameter(false, arg));
 	}
 };
@@ -410,10 +427,19 @@ public:
 class AST_attr_mod
 {
 public:
+	AST_attr_mod()
+	{
+		is_public = false;
+		is_protected = false;
+		is_private = false;
+		is_static = false;
+		is_const = false;
+	}
+
 	AST_attr_mod(AST_method_mod* mm) 
 	{
 		if(mm->is_final)
-			phc_error(ERR_FINAL_VARS, mm->get_filename(), mm->get_line_number());
+			phc_error("The final modifier is only allowed for methods", mm->get_filename(), mm->get_line_number());
 
 		this->is_public = mm->is_public;
 		this->is_protected = mm->is_protected;
@@ -448,10 +474,21 @@ public:
 	}
 };
 
+class AST_op_assignment
+{
+public:
+   AST_op_assignment(AST_variable* variable, const char* op, AST_expr* expr)
+   {
+      this->variable = variable;
+      this->op = new Token_op(new String(op));
+      this->expr = expr;
+   }
+};
+
 class AST_bin_op
 {
 public:
-	AST_bin_op(AST_expr* left, AST_expr* right, char* op) 
+	AST_bin_op(AST_expr* left, AST_expr* right, const char* op) 
 	{
 		this->left = left;
 		this->op = new Token_op(new String(op));
@@ -462,7 +499,7 @@ public:
 class AST_post_op
 {
 public:
-	AST_post_op(AST_variable* var, char* op) 
+	AST_post_op(AST_variable* var, const char* op) 
 	{
 		this->variable = var;
 		this->op = new Token_op(new String(op));
@@ -472,7 +509,7 @@ public:
 class AST_pre_op
 {
 public:
-	AST_pre_op(AST_variable* var, char* op) 
+	AST_pre_op(AST_variable* var, const char* op) 
 	{
 		this->variable = var;
 		this->op = new Token_op(new String(op));
@@ -482,39 +519,29 @@ public:
 class AST_unary_op
 {
 public:
-	AST_unary_op(AST_expr* expr, char* op) 
+	AST_unary_op(AST_expr* expr, const char* op) 
 	{
 		this->expr = expr;
 		this->op = new Token_op(new String(op));
 	}
 };
 
-class AST_expr
+class AST_if
 {
 public:
-	AST_expr()
+	AST_if(AST_expr* expr)
 	{
-		attrs->set("phc.unparser.needs_brackets", new Boolean(false));
+		AST_if (expr, new List<AST_statement*> (), new List<AST_statement*>);
 	}
 };
 
 class AST_cast
 {
 public:
-	AST_cast(char* cast, AST_expr* expr) 
+	AST_cast(const char* cast, AST_expr* expr) 
 	{
 		this->cast = new Token_cast(new String(cast));
 		this->expr = expr;
-	}
-};
-
-class AST_constant
-{
-public:
-	AST_constant(char* class_name, Token_constant_name* constant_name) 
-	{
-		this->class_name = new Token_class_name(new String(class_name));
-		this->constant_name = constant_name;
 	}
 };
 
@@ -533,19 +560,37 @@ public:
 
 class Token_int
 {
-public:
-	virtual String* get_value_as_string()
+private:
+
+	// Constructors can't call virtual functions, so we create a non-virtual to
+	// do the work. This is then called by the virtual function, and is also
+	// safely called from the constructor.
+	String* _get_value_as_string()
 	{
 		std::ostringstream os;
 		os << value;
 		return new String(os.str());
 	}
+
+public:
+	virtual String* get_value_as_string()
+	{
+		return _get_value_as_string ();
+	}
+
+	Token_int (int v)
+	{
+		value = v;
+		source_rep = _get_value_as_string ();
+	}
 };
 
 class Token_real
 {
-public:
-	virtual String* get_value_as_string()
+private:
+
+	// See comment in Token_int::_get_value_as_string ()
+	String* _get_value_as_string()
 	{
 		std::ostringstream os;
 		// setprecision(20) outputs as many digits as required, with
@@ -562,17 +607,42 @@ public:
 
 		return new String(str);
 	}
+
+public:
+	virtual String* get_value_as_string()
+	{
+		return _get_value_as_string ();
+	}
+
+	Token_real (double v)
+	{
+		value = v;
+		source_rep = _get_value_as_string ();
+	}
 };
 
 class Token_bool
 {
-public:
-	virtual String* get_value_as_string()
+private:
+	// See comment in Token_int::_get_value_as_string ()
+	String* _get_value_as_string()
 	{
 		if(value)
 			return new String("True");
 		else
 			return new String("False");
+	}
+
+public:
+	virtual String* get_value_as_string()
+	{
+		return _get_value_as_string ();
+	}
+
+	Token_bool (bool v)
+	{
+		value = v;
+		source_rep = _get_value_as_string ();
 	}
 };
 
@@ -583,6 +653,22 @@ public:
 	{
 		return value;
 	}
+
+	bool is_value_valid()
+	{
+		return value != NULL;
+	}
+
+	String* clone_value()
+	{
+		return value->clone();
+	}
+
+	Token_string (String* v)
+	{
+		value = v;
+		source_rep = v;
+	}
 };
 
 class Token_null
@@ -592,13 +678,8 @@ public:
 	{
 		return new String("NULL");
 	}
-};
-
-class AST_if
-{
-public:
-	void _init()
+	Token_null ()
 	{
-		attrs->set("phc.unparser.is_elseif", new Boolean(false));
+		source_rep = new String ("NULL");
 	}
 };

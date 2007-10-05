@@ -287,7 +287,8 @@ concreteInstances :: Symbol a -> MakeTeaMonad [Some Symbol]
 concreteInstances i@(NonTerminal nt) = 
 	do
 		r <- findRuleFor nt
-		elim f r	
+		conc <- elim f r	
+		return (nub conc)
 	where
 		f :: Rule a -> MakeTeaMonad [Some Symbol]
 		f (Disj _ xs) = do

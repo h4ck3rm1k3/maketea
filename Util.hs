@@ -7,6 +7,7 @@
 module Util where
 
 import Data.Maybe
+import Data.Char
 import Debug.Trace
 
 {-
@@ -74,9 +75,15 @@ swap (a, b) = (b, a)
 
 -- Comma-separate a list of strings
 flattenComma :: [String] -> String
-flattenComma [] = ""
-flattenComma [x] = x
-flattenComma (x:xs) = x ++ ", " ++ flattenComma xs
+flattenComma = flattenWith ", "
+
+flattenWith :: String -> [String] -> String
+flattenWith sep [] = ""
+flattenWith sep [x] = x
+flattenWith sep (x:xs) = x ++ sep ++ flattenWith sep xs
+
+strToUpper :: String -> String
+strToUpper = map toUpper
 
 {-
  - Monadic operators

@@ -27,6 +27,8 @@ import DeepCloning
 import ValidityCheck
 import Constructors
 import FactoryMethod
+import Fold
+import Util
 
 main :: IO ()
 main = do
@@ -67,12 +69,13 @@ runMakeTea config grammar includes mixinCode = do
 			classes   <- withClasses $ filterM (liftM not . isExternal . name)
 			transform <- transformClass
 			visitor   <- visitorClass
+			fold      <- foldClass
 			wildcard  <- wildcardClass
 			factory   <- factoryMethod
-			return (prefix, namespace, contexts, classes, transform, visitor, wildcard, factory)
+			return (prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory)
 		init = initState config grammar mixinCode
 		runMaketea = evalState maketea init
-		(prefix, namespace, contexts, classes, transform, visitor, wildcard, factory) = runMaketea
+		(prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory) = runMaketea
 		commonHeader = unlines $ includes ++ [
 			  "#include <list>"
 			, "#include <string>"
@@ -82,7 +85,24 @@ runMakeTea config grammar includes mixinCode = do
 			]
 		addNamespace = case namespace of
 			Nothing   -> id
-			Just name -> \body -> "namespace " ++ name ++ "{\n" ++ body ++ "}\n" 
+			Just name -> \body -> "namespace " ++ name ++ "{\n" ++ body ++ "}\n"
+		writeClass name cl = do 
+			writeFile (prefix ++ "_" ++ name ++ ".h") $ unlines [
+			      "#ifndef _" ++ prefix ++ "_" ++ strToUpper name ++ "_H_"
+				, "#define _" ++ prefix ++ "_" ++ strToUpper name ++ "_H_"
+				, ""
+				, commonHeader
+				, "#include \"" ++ prefix ++ ".h\""
+				, ""
+				, addNamespace $ showClassHeader cl 
+				, ""
+				, "#endif"
+				]
+			writeFile (prefix ++ "_" ++ name ++ ".cpp") $ unlines [
+				  "#include \"" ++ prefix ++ "_" ++ name ++ ".h\""
+				, ""
+				, addNamespace $ showClassImplementation cl 
+				]
 	-- And create output
 	writeFile (prefix ++ "-contexts") $ unlines (map show contexts)
 	writeFile (prefix ++ ".h") $ unlines [
@@ -108,51 +128,11 @@ runMakeTea config grammar includes mixinCode = do
 		, ""
 		, addNamespace $ unlines (map showClassImplementation classes)
 		]
-	writeFile (prefix ++ "_transform.h") $ unlines [
-		   "#ifndef _" ++ prefix ++ "_TRANSFORM_H_"
-		, "#define _" ++ prefix ++ "_TRANSFORM_H_"
-		, ""
-		, commonHeader
+	writeClass "transform" transform
+	writeClass "visitor" visitor
+	writeClass "factory" factory
+	writeFile (prefix ++ "_fold.h") $ unlines [
+		  commonHeader
 		, "#include \"" ++ prefix ++ ".h\""
-		, ""
-		, addNamespace $ showClassHeader transform
-		, ""
-		, "#endif"
-		]
-	writeFile (prefix ++ "_transform.cpp") $ unlines [
-		  "#include \"" ++ prefix ++ "_transform.h\""
-		, ""
-		, addNamespace $ showClassImplementation transform
-		]
-	writeFile (prefix ++ "_visitor.h") $ unlines [
-	      "#ifndef _" ++ prefix ++ "_VISITOR_H_"
-		, "#define _" ++ prefix ++ "_VISITOR_H_"
-		, ""
-		, commonHeader
-		, "#include \"" ++ prefix ++ ".h\""
-		, ""
-		, addNamespace $ showClassHeader visitor 
-		, ""
-		, "#endif"
-		]
-	writeFile (prefix ++ "_visitor.cpp") $ unlines [
-		  "#include \"" ++ prefix ++ "_visitor.h\""
-		, ""
-		, addNamespace $ showClassImplementation visitor 
-		]
-	writeFile (prefix ++ "_factory.h") $ unlines [
-	      "#ifndef _" ++ prefix ++ "_FACTORY_H_"
-		, "#define _" ++ prefix ++ "_FACTORY_H_"
-		, ""
-		, commonHeader
-		, "#include \"" ++ prefix ++ ".h\""
-		, ""
-		, addNamespace $ showClassHeader factory 
-		, ""
-		, "#endif"
-		]
-	writeFile (prefix ++ "_factory.cpp") $ unlines [
-		  "#include \"" ++ prefix ++ "_factory.h\""
-		, ""
-		, addNamespace $ showClassImplementation factory
+		, addNamespace $ fold 
 		]
