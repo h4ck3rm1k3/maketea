@@ -34,14 +34,19 @@ foldClass = do
 		, "// overridden unless you know what you are doing"
 		, "public:"
 		, unlines $ map ("\t" ++) recFolds
+		, ""
 		, "// The user-defined folds"
 		, "// Override these methods to get specific functionality"
 		, "public:"
 		, unlines $ map ("\t" ++) concreteFolds
 		, unlines $ map ("\t" ++) tokenFolds
+		, ""
 		, "// Manual dispatching for abstract classes"
 		, "// Override only if you know what you are doing!"
 		, unlines $ map ("\t" ++) dispatchers 
+		, ""
+		, "// Virtual destructor to avoid compiler warnings"
+		, "\tvirtual ~" ++ prefix ++ "_fold() {}" 
 		, "};"
 		, ""
 		, "template<class T>"
