@@ -29,9 +29,8 @@ transformClass = do
 	a_pre <- mapM (ppAbstract "pre_") abs
 	a_post <- mapM (ppAbstract "post_") abs
 	a_children <- mapM chAbstract abs
-	prefix <- getPrefix 
-	let destructor = defMethod ("", "~" ++ prefix ++ "_transform") [] []
-	return $ (emptyClassNoID (prefix ++ "_transform")) {
+	let destructor = defMethod ("", "~Transform") [] []
+	return $ (emptyClassNoID "Transform") {
 		  sections = [
 		  	  Section [] Public [destructor] 
 		  	, Section ["Invoked before the children are transformed"] Public c_pre
@@ -246,7 +245,7 @@ chAbstract :: Name NonTerminal -> MakeTeaMonad Member
 chAbstract nt = 
 	do 
 		cn <- toClassName (NonTerminal nt)
-		let decl = ("void", "children_" ++ nt)
+		let decl = ("void", "children_" ++ toVarName (NonTerminal nt))
 		let args = [(cn ++ "*", "in")]
 		conc <- concreteInstances (NonTerminal nt)
 		cases <- concatMapM switchcase conc	
@@ -267,7 +266,7 @@ chAbstract nt =
 chConcrete :: Rule Conj -> MakeTeaMonad Member
 chConcrete (Conj h ts) = do
 	cn <- toClassName h 
-	let decl = ("void", "children_" ++ nameOf h)
+	let decl = ("void", "children_" ++ toVarName h)
 	let args = [(cn ++ "*", "in")]
 	let 
 		f :: Term NonMarker -> String

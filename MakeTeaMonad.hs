@@ -79,10 +79,10 @@ setClasses cs = do
  -}
 
 isExternal :: Name Class -> MakeTeaMonad Bool
-isExternal c = withConfig $ return . (c `elem`) . external_classes 
+isExternal c = withConfig $ return . (c `elem`) . externalClasses 
 
-getPrefix :: MakeTeaMonad String
-getPrefix = withConfig $ return . prefix
+getFilePrefix :: MakeTeaMonad String
+getFilePrefix = withConfig $ return . filePrefix
 
 getListClass :: MakeTeaMonad String
 getListClass = withConfig $ return . listClass

@@ -17,7 +17,6 @@ param sym = ("_" ++) `fmap` toClassName sym
 
 foldClass :: MakeTeaMonad String 
 foldClass = do
-	prefix <- getPrefix
 	templateParams <- withSymbols $ mapM param 
 	concreteFolds <- withConj $ mapM concreteFold
 	tokenFolds <- withTokens $ mapM tokenFold
@@ -27,7 +26,7 @@ foldClass = do
 		[
 		  "template"
 		, "<" ++ (flattenWith ",\n " $ map ("class " ++) templateParams) ++ ">"
-		, "class " ++ prefix ++ "_fold"
+		, "class Fold"
 		, "{"
 		, "// Recursively fold the children before folding the parent"
 		, "// This methods form the client API for a fold, but should not be"
@@ -46,11 +45,11 @@ foldClass = do
 		, unlines $ map ("\t" ++) dispatchers 
 		, ""
 		, "// Virtual destructor to avoid compiler warnings"
-		, "\tvirtual ~" ++ prefix ++ "_fold() {}" 
+		, "\tvirtual ~Fold() {}" 
 		, "};"
 		, ""
 		, "template<class T>"
-		, "class " ++ prefix ++ "_uniform_fold : public " ++ prefix ++ "_fold<" ++ flattenComma (replicate (length templateParams) "T") ++ "> {};"
+		, "class Uniform_fold : public Fold<" ++ flattenComma (replicate (length templateParams) "T") ++ "> {};"
 		]
 
 concreteFold :: Rule Conj -> MakeTeaMonad String

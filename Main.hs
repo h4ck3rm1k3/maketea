@@ -63,7 +63,7 @@ runMakeTea config grammar includes mixinCode = do
 			-- Order the classes so that C++ won't complain
 			orderClasses
 			-- Extract relevant components
-			prefix    <- getPrefix
+			prefix    <- getFilePrefix
 			namespace <- getNamespace
 			contexts  <- withContexts return
 			classes   <- withClasses $ filterM (liftM not . isExternal . name)
@@ -112,8 +112,8 @@ runMakeTea config grammar includes mixinCode = do
 		, commonHeader
 		] ++ (addNamespace $ unlines [
 		  unlines (map (\c -> "class " ++ c ++ ";") (map name classes))
-		, "class " ++ prefix ++ "_transform;"
-		, "class " ++ prefix ++ "_visitor;"
+		, "class Transform;"
+		, "class Visitor;"
 		, ""
 		, unlines (map showClassHeader classes)
 		, unlines wildcard

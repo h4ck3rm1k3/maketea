@@ -152,7 +152,6 @@ wildcardClass :: MakeTeaMonad Body
 wildcardClass = do
 	root <- rootSymbol
 	rootCn <- toClassName root
-	prefix <- getPrefix
 	cid <- getNextClassID
 	return [
 		  "class __WILDCARD__"
@@ -214,13 +213,13 @@ wildcardClass = do
 		, "\t}"
 		, ""
 		-- TODO: is this the implementation of visit and transform_children we want?
-		, "\tvirtual void visit(" ++ prefix ++ "_visitor* visitor)"
+		, "\tvirtual void visit(Visitor* visitor)"
 		, "\t{"
 		, "\t\tif(value != NULL)"
 		, "\t\t\tvalue->visit(visitor);"
 		, "\t}"
 		, ""
-		, "\tvirtual void transform_children(" ++ prefix ++ "_transform* transform)"
+		, "\tvirtual void transform_children(Transform* transform)"
 		, "\t{"
 		, "\t\tif(value != NULL)"
 		, "\t\t\tvalue->transform_children(transform);"

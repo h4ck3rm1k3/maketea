@@ -41,12 +41,12 @@ configP =
 		return (foldr ($) initConfig cs)
 	where
 		initConfig = Config {
-			  prefix = "AST"
-			, external_classes = []
+			  filePrefix = "AST"
+			, externalClasses = []
 			, listClass = "list"
 			, stringClass = "string"
 			, namespace = Nothing 
-			, rootName = "node"
+			, rootName = "Node"
 			}
 
 settingP :: Parser (Config -> Config)
@@ -56,13 +56,13 @@ settingP =
 		reserved "class"
 		cn <- stringLiteral
 		reservedOp ";"
-		return (\c -> c { external_classes = cn : external_classes c })
+		return (\c -> c { externalClasses = cn : externalClasses c })
 	<|>
 	do
 		reserved "prefix"
 		pf <- stringLiteral
 		reservedOp ";"
-		return (\c -> c { prefix = pf })
+		return (\c -> c { filePrefix = pf })
 	<|>
 	do
 		reserved "use"
@@ -315,9 +315,10 @@ nonTerminalP :: Parser (Symbol NonTerminal)
 nonTerminalP = try $
 	do
 		id <- identifier
-		if all (isAlpha `implies` isLower) id 
+		-- a non-terminal symbol must have at least some lower-case characters
+		if not (all (isAlpha `implies` isUpper) id) 
 			then return (NonTerminal id)
-			else fail "expected lowercase identifier"
+			else fail "expected non-terminal symbol"
 
 terminalP :: Parser (Symbol Terminal)
 terminalP = try $
@@ -328,7 +329,7 @@ terminalP = try $
 			return (Just l)
 		if all (isAlpha `implies` isUpper) id
 			then return (Terminal id ctype)
-			else fail "expected uppercase identifier"
+			else fail "expected terminal symbol"
 
 markerP :: Parser (Name Marker)
 markerP = try $

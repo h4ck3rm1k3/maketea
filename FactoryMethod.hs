@@ -7,7 +7,6 @@ import Util
 
 factoryMethod :: MakeTeaMonad Class 
 factoryMethod = do
-	prefix <- getPrefix
 	listClass <- getListClass
 	lists <- allLists
 	creates <- withConj (concatMapM createNode)
@@ -17,7 +16,7 @@ factoryMethod = do
 	let 
 		cmnt = 
 			[
-			  "If type_id corresponds to " ++ prefix ++ " node, the elements in args must"
+			  "If type_id corresponds to an AST node, the elements in args must"
 			, "correspond to the children of the node."
 			, ""
 			, "If type_id corresponds to a list (of the form \"..._list\"),"
@@ -27,6 +26,8 @@ factoryMethod = do
 			, "If type_id corresponds to a token (terminal symbol), args must"
 			, "contain a single node of type " ++ str ++ ". Terminal symbols"
 			, "with non-default values are not supported."
+			, ""
+			, "If the node type is not recognized, NULL is returned."
 			]
 		decl = ("Object*", "create")
 		args = [("char const*", "type_id"),(listClass ++ "<Object*>*", "args")]
@@ -37,11 +38,10 @@ factoryMethod = do
 			  creates ++ createTokens ++ createLists 
 			  ++
 			[
-			  "assert(0);"
-			, "return NULL;"
+			  "return NULL;"
 			]
 		create = Method cmnt NonVirtual Static decl args body 
-	return $ (emptyClassNoID (prefix ++ "_factory"))
+	return $ (emptyClassNoID "Node_factory")
 		{
 			sections = [Section [] Public [create]]
 		}

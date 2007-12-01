@@ -90,7 +90,7 @@ allExtends (c:cn) = do
 
 orderClasses :: MakeTeaMonad ()
 orderClasses = withClasses $ \cs -> do
-	ext <- withConfig $ return . external_classes
+	ext <- withConfig $ return . externalClasses
 	setClasses (orderClasses' ext cs)
 
 orderClasses' :: [Name Class] -> [Class] -> [Class]
@@ -123,10 +123,8 @@ instance ToClassName (Term NonMarker) where
 	toClassName = termToClassName
 
 symbolToClassName :: Symbol a -> MakeTeaMonad (Name Class)
-symbolToClassName (NonTerminal n) = do
-	p <- getPrefix
-	return (p ++ "_" ++ n)
-symbolToClassName (Terminal n _) = return $ "Token_" ++ (map toLower n) 
+symbolToClassName (NonTerminal n) = return n 
+symbolToClassName (Terminal n _) = return n 
 
 termToClassName :: Term NonMarker -> MakeTeaMonad CType 
 termToClassName (Term _ s m) = do
@@ -165,7 +163,7 @@ termToVarName (Marker Nothing m) = "is_" ++ m
 termToVarName (Marker (Just n) _) = n
 
 symbolToVarName :: Symbol a -> Name Variable 
-symbolToVarName (NonTerminal n) = n
+symbolToVarName (NonTerminal n) = map toLower n
 symbolToVarName (Terminal n _) = map toLower n
 
 mapMembers :: Monad m => (Member -> m Member) -> Class -> m Class

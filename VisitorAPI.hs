@@ -17,7 +17,6 @@ import ContextResolution
 
 visitorClass :: MakeTeaMonad Class
 visitorClass = do
-	prefix <- getPrefix 
 	{- API -}
 	pre <- withSymbols $ mapM (elim (prepost "pre_"))
 	post <- withSymbols $ mapM (elim (prepost "post_"))
@@ -33,14 +32,14 @@ visitorClass = do
 	a_pre_chain <- mapM (dispatcher "pre_" "_chain") abs
 	a_post_chain <- mapM (dispatcher "post_" "_chain") abs
 	a_children <- mapM (dispatcher "children_" "") abs
-	let destructor = defMethod ("", "~" ++ prefix ++ "_visitor") [] []
+	let destructor = defMethod ("", "~Visitor") [] []
 	-- unparser support
 	let visit_marker = defMethod ("void", "visit_marker") [("char const*", "name"), ("bool", "value")] [] 
 	let visit_null = defMethod ("void", "visit_null") [("char const*", "type_id")] []
 	let visit_null_list = defMethod ("void", "visit_null_list") [("char const*", "type_id")] []
 	let pre_list = defMethod ("void", "pre_list") [("char const*", "type_id"), ("int", "size")] [] 
 	let post_list = defMethod ("void", "post_list") [("char const*", "type_id"), ("int", "size")] []
-	return $ (emptyClassNoID (prefix ++ "_visitor")) {
+	return $ (emptyClassNoID "Visitor") {
 			sections = [
 		  	  Section [] Public [destructor] 
 			, Section ["Invoked before the children are visited"] Public pre
@@ -130,7 +129,7 @@ dispatcher :: String -> String -> Name NonTerminal -> MakeTeaMonad Member
 dispatcher pre post nt = 
 	do 
 		cn <- toClassName (NonTerminal nt)
-		let decl = ("void", pre ++ nt ++ post)
+		let decl = ("void", pre ++ toVarName (NonTerminal nt) ++ post)
 		let args = [(cn ++ "*", "in")]
 		conc <- concreteInstances (NonTerminal nt)
 		cases <- concatMapM switchcase conc	
@@ -160,7 +159,7 @@ prepost pp s = do
 chPublic :: Rule Conj -> MakeTeaMonad Member
 chPublic (Conj nt body) = do
 	cn <- toClassName nt 
-	let decl = ("void", "children_" ++ nameOf nt)
+	let decl = ("void", "children_" ++ toVarName nt)
 	let args = [(cn ++ "*", "in")]
 	let 
 		f :: Term a -> String

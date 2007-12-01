@@ -24,9 +24,8 @@ createClass r@(Disj c _) = do
 	cn <- toClassName c
 	inhn <- mapM (toClassName . NonTerminal) inh
 	let c = emptyAbstractClass cn
-	prefix <- getPrefix
-	let visit = PureVirtual [] ("void", "visit") [(prefix ++ "_visitor*", "visitor")]
-	let trCh = PureVirtual [] ("void", "transform_children") [(prefix ++ "_transform*", "transform")]
+	let visit = PureVirtual [] ("void", "visit") [("Visitor*", "visitor")]
+	let trCh = PureVirtual [] ("void", "transform_children") [("Transform*", "transform")]
 	let tvS = Section [] Public [visit, trCh]
 	return $ c { 
 		  extends = inhn
@@ -53,10 +52,9 @@ createClass r@(Conj c body) = do
 visitTransformSection :: Some Symbol -> MakeTeaMonad Section
 visitTransformSection s = do
 	-- Any of the original contexts will do
-	prefix <- getPrefix 
 	(_,s',_):_ <- findOrigContexts s 
-	let visit = defMethod ("void", "visit") [(prefix ++ "_visitor*", "visitor")] ["visitor->visit_" ++ toVarName s' ++ "(this);"]
-	let trCh = defMethod ("void", "transform_children") [(prefix ++ "_transform*", "transform")] ["transform->children_" ++ toVarName s' ++ "(this);"]
+	let visit = defMethod ("void", "visit") [("Visitor*", "visitor")] ["visitor->visit_" ++ toVarName s' ++ "(this);"]
+	let trCh = defMethod ("void", "transform_children") [("Transform*", "transform")] ["transform->children_" ++ toVarName s' ++ "(this);"]
 	return $ Section [] Public [visit, trCh]
 
 createFieldDecl :: Term a -> MakeTeaMonad (Decl Variable) 

@@ -129,8 +129,8 @@ data MakeTeaState = MTS {
  -}
 
 data Config = Config {
-	  prefix :: String
-	, external_classes :: [Name Class]
+	  filePrefix :: String
+	, externalClasses :: [Name Class]
 	, listClass :: String
 	, stringClass :: String
 	, namespace :: Maybe String 
