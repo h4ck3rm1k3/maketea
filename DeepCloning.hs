@@ -91,23 +91,35 @@ addCloneT t@(Terminal _ ctype) cls = do
 	string <- getStringClass
 	let cloneStr vn = string ++ "* " ++ vn ++ " = new " ++ string ++ "(*this->" ++ vn ++ ");"
 	cmf <- cloneMixinFrom cls
-	let clone = case ctype of
-		Nothing -> defMethod decl [] $ [
+	noSourceRep <- getNoSourceRep
+	let clone = case (ctype, noSourceRep) of
+		(Nothing, _) -> defMethod decl [] $ [
 			  cloneStr "value"
 			, name cls ++ "* clone = new " ++ name cls ++ "(value);"
 			] ++ cmf ++ [
 			  "return clone;"
 			]
-		Just "" -> defMethod decl [] $ [
+		(Just "", False) -> defMethod decl [] $ [
 			  cloneStr "source_rep"
 			, name cls ++ "* clone = new " ++ name cls ++ "(source_rep);"
 			] ++ cmf ++ [
 			  "return clone;"
 			]
-		Just t -> defMethod decl [] $ [
+		(Just "", True) -> defMethod decl [] $ [
+			  name cls ++ "* clone = new " ++ name cls ++ "();"
+			] ++ cmf ++ [
+			  "return clone;"
+			]
+		(Just t, False) -> defMethod decl [] $ [
 			  cloneStr "source_rep"
 			, "value = clone_value();"
 			, name cls ++ "* clone = new " ++ name cls ++ "(value, source_rep);"
+			] ++ cmf ++ [
+			  "return clone;"
+			]
+		(Just t, True) -> defMethod decl [] $ [
+			  "value = clone_value();"
+			, name cls ++ "* clone = new " ++ name cls ++ "(value);"
 			] ++ cmf ++ [
 			  "return clone;"
 			]

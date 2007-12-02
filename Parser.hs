@@ -47,6 +47,7 @@ configP =
 			, stringClass = "string"
 			, namespace = Nothing 
 			, rootName = "Node"
+			, noSourceRep = False
 			}
 
 settingP :: Parser (Config -> Config)
@@ -63,6 +64,12 @@ settingP =
 		pf <- stringLiteral
 		reservedOp ";"
 		return (\c -> c { filePrefix = pf })
+	<|>
+	do
+		reserved "no";
+		reserved "source_rep";
+		reservedOp ";"
+		return (\c -> c { noSourceRep = True })
 	<|>
 	do
 		reserved "use"
@@ -343,16 +350,7 @@ markerP = try $
 
 lexer = T.makeTokenParser haskellStyle
 	{
-		reservedNames = [
-			  "class"
-			, "private"
-			, "protected"
-			, "public"
-			, "virtual"
-			, "static"
-			, "external"
-			]
-	,	reservedOpNames = [
+	 	reservedOpNames = [
 			  "|", ";", "?", "*"
 			, "*?", "?*", "::=", ":"
 			, "+","{","}","(",")"

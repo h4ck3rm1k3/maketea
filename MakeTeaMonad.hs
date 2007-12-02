@@ -93,6 +93,9 @@ getStringClass = withConfig $ return . stringClass
 getNamespace :: MakeTeaMonad (Maybe String) 
 getNamespace = withConfig $ return . namespace 
 
+getNoSourceRep :: MakeTeaMonad Bool
+getNoSourceRep = withConfig $ return . noSourceRep
+
 {-
  - Initial state for the monad
  -}

@@ -135,20 +135,26 @@ addEqualT t@(Terminal _ ctype) cls = do
 		, ""
 		]
 	ime <- isMixinEqual cls
-	let equal = case ctype of
-		Nothing -> defMethod decl args (
+	noSourceRep <- getNoSourceRep
+	let equal = case (ctype, noSourceRep) of
+		(Nothing, _) -> defMethod decl args (
 			   equalHeader 
 			++ equalBody "value"
 			++ ime
 			++ ["return true;"]
 			)
-		Just "" -> defMethod decl args (
+		(Just "", False) -> defMethod decl args (
 			   equalHeader 
 			++ equalBody "source_rep"
 			++ ime
 			++ ["return true;"]
 			)
-		Just t -> defMethod decl args (
+		(Just "", True) -> defMethod decl args (
+			   equalHeader 
+			++ ime
+			++ ["return true;"]
+			)
+		(Just t, False) -> defMethod decl args (
 			   equalHeader 
 			++ [
 			  "if(!equals_value(that))"
@@ -156,6 +162,16 @@ addEqualT t@(Terminal _ ctype) cls = do
 			, ""
 			]
 			++ equalBody "source_rep"
+			++ ime
+			++ ["return true;"]
+			)
+		(Just t, True) -> defMethod decl args (
+			   equalHeader 
+			++ [
+			  "if(!equals_value(that))"
+			, "\treturn false;"
+			, ""
+			]
 			++ ime
 			++ ["return true;"]
 			)
