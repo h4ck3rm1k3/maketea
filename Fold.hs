@@ -129,6 +129,7 @@ recCall t@(Term lab sym mult) | isVector mult = do
 		[
 		  -- TODO: Again, using 0 for NULL values
 		  "\t" ++ param ++ "* " ++ vn ++ " = new " ++ param ++ ";" 
+		, if mult == OptVector then "if (in->" ++ vn ++ ")" else ""
 		, "\t{"
 		, "\t\t" ++ cn ++ "::const_iterator i;"
 		, "\t\tfor(i = in->" ++ vn ++ "->begin(); i != in->" ++ vn ++ "->end(); i++)"
