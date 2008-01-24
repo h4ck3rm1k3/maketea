@@ -131,7 +131,7 @@ recCall t@(Term lab sym mult) | isVector mult = do
 		  "\t" ++ param ++ "* " ++ vn ++ " = 0;"
 		, if mult == OptVector then "if (in->" ++ vn ++ ")" else ""
 		, "\t{"
-    , "\t\t" ++ vn ++ " = new " ++ param ++ ";"
+		, "\t\t" ++ vn ++ " = new " ++ param ++ ";"
 		, "\t\t" ++ cn ++ "::const_iterator i;"
 		, "\t\tfor(i = in->" ++ vn ++ "->begin(); i != in->" ++ vn ++ "->end(); i++)"
 		, "\t\t\tif(*i != NULL) " ++ vn ++ "->push_back(fold_" ++ toVarName t' ++ "(*i));" 
