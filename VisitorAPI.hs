@@ -35,10 +35,10 @@ visitorClass = do
 	let destructor = defMethod ("", "~Visitor") [] []
 	-- unparser support
 	let visit_marker = defMethod ("void", "visit_marker") [("char const*", "name"), ("bool", "value")] [] 
-	let visit_null = defMethod ("void", "visit_null") [("char const*", "type_id")] []
-	let visit_null_list = defMethod ("void", "visit_null_list") [("char const*", "type_id")] []
-	let pre_list = defMethod ("void", "pre_list") [("char const*", "type_id"), ("int", "size")] [] 
-	let post_list = defMethod ("void", "post_list") [("char const*", "type_id"), ("int", "size")] []
+	let visit_null = defMethod ("void", "visit_null") [("char const*", "name_space"), ("char const*", "type_id")] []
+	let visit_null_list = defMethod ("void", "visit_null_list") [("char const*", "name_space"), ("char const*", "type_id")] []
+	let pre_list = defMethod ("void", "pre_list") [("char const*", "name_space"), ("char const*", "type_id"), ("int", "size")] [] 
+	let post_list = defMethod ("void", "post_list") [("char const*", "name_space"), ("char const*", "type_id"), ("int", "size")] []
 	return $ (emptyClassNoID "Visitor") {
 			sections = [
 		  	  Section [] Public [destructor] 
@@ -72,28 +72,32 @@ visit t@(Term _ s m) | isVector m = do
 	let args = [(cn ++ "*", "in")]
 	let t' = Term undefined s Single
 	cn' <- toClassName t'
+	ns <- getNamespace
+	let ns' = case ns of
+				Nothing -> ""
+				(Just name) -> name
 	let decl' = ("void", termToVisitor t')
 	let args' = [(cn' ++ "*", "in")]
 	let visitM = defMethod decl args [
 		  cn ++ "::const_iterator i;"
 		, ""
 		, "if(in == NULL)"
-		, "\tvisit_null_list(\"" ++ cn' ++ "\");"
+		, "\tvisit_null_list(\"" ++ ns' ++ "\", \"" ++ cn' ++ "\");"
 		, "else"
 		, "{"
-		, "\tpre_list(\"" ++ cn' ++ "\", in->size());"
+		, "\tpre_list(\"" ++ ns' ++ "\", \"" ++ cn' ++ "\", in->size());"
 		, ""
 		, "\tfor(i = in->begin(); i != in->end(); i++)"
 		, "\t{"
 		, "\t\tvisit_" ++ toVarName s ++ "(*i);"
 		, "\t}"
 		, ""
-		, "\tpost_list(\"" ++ cn' ++ "\", in->size());"
+		, "\tpost_list(\"" ++ ns' ++ "\", \"" ++ cn' ++ "\", in->size());"
 		, "}"
 		]
 	let visitS = defMethod decl' args' [
 		  "if(in == NULL)"
-		, "\tvisit_null(\"" ++ cn' ++ "\");"
+		, "\tvisit_null(\"" ++ ns' ++ "\", \"" ++ cn' ++ "\");"
 		, "else"
 		, "{"
 		, "\tpre_" ++ toVarName s ++ "_chain(in);"
@@ -111,11 +115,15 @@ visit t@(Term _ s m) | isVector m = do
 	return methods 
 visit t@(Term _ s m) | not (isVector m) = do
 	cn <- toClassName t
+	ns <- getNamespace
+	let ns' = case ns of
+				Nothing -> ""
+				(Just name) -> name
 	let decl = ("void", termToVisitor t)
 	let args = [(cn ++ "*", "in")]
 	let body = [
 		  "if(in == NULL)"
-		, "\tvisit_null(\"" ++ cn ++ "\");"
+		, "\tvisit_null(\"" ++ ns' ++ "\", \"" ++ cn ++ "\");"
 		, "else"
 		, "{"
 		, "\tpre_" ++ toVarName s ++ "_chain(in);"
