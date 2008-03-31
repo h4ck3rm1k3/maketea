@@ -41,7 +41,8 @@ configP =
 		return (foldr ($) initConfig cs)
 	where
 		initConfig = Config {
-			  filePrefix = "AST"
+			  outputDir = "."
+			, filePrefix = "AST"
 			, externalClasses = []
 			, listClass = "list"
 			, stringClass = "string"
@@ -64,6 +65,12 @@ settingP =
 		pf <- stringLiteral
 		reservedOp ";"
 		return (\c -> c { filePrefix = pf })
+	<|>
+	do
+		reserved "output_dir"
+		od <- stringLiteral
+		reservedOp ";"
+		return (\c -> c { outputDir = od })
 	<|>
 	do
 		reserved "no";

@@ -9,6 +9,7 @@ module Main where
 import Text.ParserCombinators.Parsec
 import Control.Monad.State
 import System
+import System.Directory
 
 import Parser
 import DataStructures
@@ -63,19 +64,20 @@ runMakeTea config grammar includes mixinCode = do
 			-- Order the classes so that C++ won't complain
 			orderClasses
 			-- Extract relevant components
-			prefix    <- getFilePrefix
-			namespace <- getNamespace
-			contexts  <- withContexts return
-			classes   <- withClasses $ filterM (liftM not . isExternal . name)
-			transform <- transformClass
-			visitor   <- visitorClass
-			fold      <- foldClass
-			wildcard  <- wildcardClass
-			factory   <- factoryMethod
-			return (prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory)
+			outputDir	<- getOutputDir
+			prefix		<- getFilePrefix
+			namespace	<- getNamespace
+			contexts		<- withContexts return
+			classes		<- withClasses $ filterM (liftM not . isExternal . name)
+			transform	<- transformClass
+			visitor		<- visitorClass
+			fold			<- foldClass
+			wildcard		<- wildcardClass
+			factory		<- factoryMethod
+			return (outputDir, prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory)
 		init = initState config grammar mixinCode
 		runMaketea = evalState maketea init
-		(prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory) = runMaketea
+		(outputDir, prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory) = runMaketea
 		commonHeader = unlines $ includes ++ [
 			  "#include <list>"
 			, "#include <string>"
@@ -87,7 +89,7 @@ runMakeTea config grammar includes mixinCode = do
 			Nothing   -> id
 			Just name -> \body -> "namespace " ++ name ++ "{\n" ++ body ++ "}\n"
 		writeClass name cl = do 
-			writeFile (prefix ++ "_" ++ name ++ ".h") $ unlines [
+			writeFile (outputDir ++ "/" ++ prefix ++ "_" ++ name ++ ".h") $ unlines [
 			      "#ifndef _" ++ prefix ++ "_" ++ strToUpper name ++ "_H_"
 				, "#define _" ++ prefix ++ "_" ++ strToUpper name ++ "_H_"
 				, ""
@@ -98,14 +100,15 @@ runMakeTea config grammar includes mixinCode = do
 				, ""
 				, "#endif"
 				]
-			writeFile (prefix ++ "_" ++ name ++ ".cpp") $ unlines [
+			writeFile (outputDir ++ "/" ++ prefix ++ "_" ++ name ++ ".cpp") $ unlines [
 				  "#include \"" ++ prefix ++ "_" ++ name ++ ".h\""
 				, ""
 				, addNamespace $ showClassImplementation cl 
 				]
 	-- And create output
-	writeFile (prefix ++ "-contexts") $ unlines (map show contexts)
-	writeFile (prefix ++ ".h") $ unlines [
+	createDirectoryIfMissing True outputDir
+	writeFile (outputDir ++ "/" ++ prefix ++ "-contexts") $ unlines (map show contexts)
+	writeFile (outputDir ++ "/" ++ prefix ++ ".h") $ unlines [
 		  "#ifndef _" ++ prefix ++ "_H_"
 		, "#define _" ++ prefix ++ "_H_"
 		, ""
@@ -121,7 +124,7 @@ runMakeTea config grammar includes mixinCode = do
 		  ""
 		, "#endif"
 		]
-	writeFile (prefix ++ ".cpp") $ unlines [
+	writeFile (outputDir ++ "/" ++ prefix ++ ".cpp") $ unlines [
 		  "#include \"" ++ prefix ++ ".h\""
 		, "#include \"" ++ prefix ++ "_transform.h\""
 		, "#include \"" ++ prefix ++ "_visitor.h\""
@@ -131,7 +134,7 @@ runMakeTea config grammar includes mixinCode = do
 	writeClass "transform" transform
 	writeClass "visitor" visitor
 	writeClass "factory" factory
-	writeFile (prefix ++ "_fold.h") $ unlines [
+	writeFile (outputDir ++ "/" ++ prefix ++ "_fold.h") $ unlines [
 		  commonHeader
 		, "#include \"" ++ prefix ++ ".h\""
 		, addNamespace $ fold 
