@@ -8,6 +8,7 @@ module VisitorAPI where
 
 import Data.Graph.Inductive
 import Data.List
+import Control.Monad
 
 import DataStructures
 import MakeTeaMonad
@@ -196,7 +197,11 @@ ppChain pp rev s = do
 		= (if rev then reverse else id) $ filter (`elem` sc) top
 	let decl = ("void", pp ++ toVarName s ++ "_chain")
 	let args = [(cn ++ "*", "in")]
-	return $ defMethod decl args (map (\s -> pp ++ toVarName s ++ "(in);") sc_ordered)
+	body <- forM sc_ordered $ \s -> do 
+		let vn = toVarName s
+		cn <- toClassName s
+		return $ pp ++ vn ++ "((" ++ cn ++ "*) in);"
+	return $ defMethod decl args body 
 
 preChain = ppChain "pre_" False
 postChain = ppChain "post_" True
