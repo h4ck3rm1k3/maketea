@@ -117,7 +117,7 @@ classP =
 		name <- identifier
 		inh <- option [] $ do 
 			reservedOp ":"
-			identifier `sepBy1` comma
+			class_identifier `sepBy1` comma
 		reservedOp "{"
 		ss <- many sectionP
 		reservedOp "}"
@@ -372,6 +372,15 @@ stringLiteral = T.stringLiteral lexer
 lexeme = T.lexeme lexer
 comma = T.comma lexer
 symbol = T.symbol lexer
+
+-- Allow classes to use ::s
+class_lexer = T.makeTokenParser haskellStyle
+	{
+		identLetter = alphaNum <|> oneOf "_':"
+	}
+
+class_identifier = T.identifier class_lexer
+
 
 parens p = 
 		try (between (symbol "(") (symbol ")") p)
