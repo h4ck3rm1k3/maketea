@@ -146,6 +146,7 @@ findInheritanceGraph grammar =
 		labelFor s = fromMaybe (error $ "cannot find \"" ++ show s ++ "\"") (lookup s labels)
 		nodes = map swap labels
 		edges = concatMap edgesFor (disjunctions grammar) 
+		edgesFor :: Rule Disj -> [(Int, Int, ())]
 		edgesFor (Disj nt body) =
 			let lr = labelFor (Exists nt) 
 			in [(lr,labelFor s,()) | s <- body] 
