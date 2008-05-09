@@ -241,6 +241,12 @@ wildcardClass = do
 		, "\t\t\tvalue->transform_children(transform);"
 		, "\t}"
 		, ""
+		, "\tvirtual Node* find(Node* in)"
+		, "\t{"
+		, "\t\tassert (0); // I'm not sure what this would mean"
+		, "\t\treturn NULL;" -- silence warning
+		, "\t}"
+		, ""
 		, "public:"
 		, "\tstatic const int ID = " ++ show cid ++ ";" 
 		, "\tint classid()"
