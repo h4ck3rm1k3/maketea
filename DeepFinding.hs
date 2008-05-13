@@ -40,7 +40,7 @@ addFindR (Conj _ body) cls = do
 	findTerms <- concatMapM (elim findTerm) body 
 	let find = defMethod decl args $ [
 		  "if (this->match (in))"
-		, "	return this;"
+		, "\treturn this;"
 		, ""
 		] ++ findTerms ++ [
 		  "return NULL;"
@@ -90,7 +90,7 @@ addFindT t@(Terminal _ ctype) cls = do
 	let args = [(rootCn ++ "*", "in")]
 	let find = defMethod decl args $ [
 		  "if (this->match (in))"
-		, "	return this;"
+		, "\treturn this;"
 		, ""
 		, "return NULL;"
 		]
