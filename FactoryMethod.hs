@@ -75,11 +75,12 @@ declChild t@(Marker _ _) = do
 createList :: Some Symbol -> MakeTeaMonad Body
 createList s = do
 	cn <- toClassName s
+	listClass <- getListClass
 	return $ 
 		[
 		  "if(!strcmp(type_id, \"" ++ cn ++ "_list\"))"
 		, "{"
-		, "\tList<" ++ cn ++ "*>* list = new List<" ++ cn ++ "*>;"
+		, "\t" ++ listClass ++ "<" ++ cn ++ "*>* list = new " ++ listClass ++ "<" ++ cn ++ "*>;"
 		, "\twhile(i != args->end())"
 		, "\t\tlist->push_back(dynamic_cast<" ++ cn ++ "*>(*i++));"
 		, "\treturn list;" 
