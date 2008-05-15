@@ -168,6 +168,7 @@ wildcardClass :: MakeTeaMonad Body
 wildcardClass = do
 	root <- rootSymbol
 	rootCn <- toClassName root
+	rootCnList <- toClassName (Term Nothing root Vector)
 	cid <- getNextClassID
 	return [
 		  "class __WILDCARD__"
@@ -241,12 +242,16 @@ wildcardClass = do
 		, "\t\t\tvalue->transform_children(transform);"
 		, "\t}"
 		, ""
-		, "\tvirtual Node* find(Node* in)"
+		, "\tvirtual " ++ rootCn ++ "* find(" ++ rootCn ++ "* in)"
 		, "\t{"
 		, "\t\tassert (0); // I'm not sure what this would mean"
 		, "\t\treturn NULL;" -- silence warning
 		, "\t}"
 		, ""
+		, "\tvirtual void findAll(" ++ rootCn ++ "* in, " ++ rootCnList ++ "* out)"
+		, "\t{"
+		, "\t\tassert (0); // I'm not sure what this would mean"
+		, "\t}"
 		, "public:"
 		, "\tstatic const int ID = " ++ show cid ++ ";" 
 		, "\tint classid()"

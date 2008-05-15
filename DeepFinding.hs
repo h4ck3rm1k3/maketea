@@ -16,11 +16,19 @@ addDeepFinding =
 	do
 		cs <- withClasses $ mapM f
 		setClasses cs
+		cs_all <- withClasses $ mapM f_all
+		setClasses cs_all
 	where
 		f cls = case origin cls of
 				Nothing -> return cls
 				Just (Left r) -> elim addFindR r cls
 				Just (Right t) -> addFindT t cls	
+		f_all cls = case origin cls of
+				Nothing -> return cls
+				Just (Left r) -> elim addFindAllR r cls
+				Just (Right t) -> addFindAllT t cls	
+
+
 
 addFindR :: Rule a -> Class -> MakeTeaMonad Class
 addFindR (Disj _ _) cls = do
@@ -51,18 +59,21 @@ addFindR (Conj _ body) cls = do
 
 findTerm :: Term a -> MakeTeaMonad Body
 findTerm t@(Marker _ _) = do
-	let vn = toVarName t		
 	return [] -- nothing to do here
 findTerm t@(Term _ _ m) | not (isVector m) = do 
 	let vn = toVarName t
+	root <- rootSymbol
+	rootCn <- toClassName root
 	return [
-		  "Node* " ++ vn ++ "_res = " ++ vn ++ "->find(in);"
+		  rootCn ++ "* " ++ vn ++ "_res = " ++ vn ++ "->find(in);"
 		, "if (" ++ vn ++ "_res) return " ++ vn ++ "_res;"
 		, ""
 		]
 findTerm t@(Term _ _ m) | isVector m = do
 	let vn = toVarName t
 	cn <- toClassName t
+	root <- rootSymbol
+	rootCn <- toClassName root
 	return [
 		  "if(this->" ++ vn ++ " != NULL)"
 		, "{"
@@ -74,7 +85,7 @@ findTerm t@(Term _ _ m) | isVector m = do
 		, "\t{"
 		, "\t\tif(*i != NULL)"
 		, "\t\t{"
-		, "\t\t\tNode* res = (*i)->find (in);"
+		, "\t\t\t" ++ rootCn ++ "* res = (*i)->find (in);"
 		, "\t\t\tif (res) return res;"
 		, "\t\t}"
 		, "\t}"
@@ -97,3 +108,83 @@ addFindT t@(Terminal _ ctype) cls = do
 	return $ cls { 
 		  sections = sections cls ++ [Section [] Public [find]]
 		}
+
+
+{-
+ - FindAll puts the result in a list, and keeps looking.
+ -}
+
+addFindAllR :: Rule a -> Class -> MakeTeaMonad Class
+addFindAllR (Disj _ _) cls = do
+	root <- rootSymbol
+	rootCn <- toClassName root
+	rootCnList <- toClassName (Term Nothing root Vector)
+	let decl = ("void", "findAll")
+	let args = [(rootCn ++ "*", "in"), (rootCnList ++ "*", "out")]
+	let findAll = PureVirtual [] decl args 
+	return $ cls { 
+		  sections = sections cls ++ [Section [] Public [findAll]]
+		}
+addFindAllR (Conj _ body) cls = do
+	root <- rootSymbol
+	rootCn <- toClassName root
+	rootCnList <- toClassName (Term Nothing root Vector)
+	let decl = ("void", "findAll")
+	let args = [(rootCn ++ "*", "in"), (rootCnList ++ "*", "out")]
+	findAllTerms <- concatMapM (elim findAllTerm) body 
+	let findAll = defMethod decl args $ [
+		  "if (this->match (in))"
+		, "\tout->push_back (in);"
+		, ""
+		] ++ findAllTerms
+	return $ cls { 
+		  sections = sections cls ++ [Section [] Public [findAll]]
+		}
+
+findAllTerm :: Term a -> MakeTeaMonad Body
+findAllTerm t@(Marker _ _) = do
+	return [] -- nothing to do here
+findAllTerm t@(Term _ _ m) | not (isVector m) = do 
+	let vn = toVarName t
+	return [
+		  vn ++ "->findAll(in, out);"
+		, ""
+		]
+findAllTerm t@(Term _ _ m) | isVector m = do
+	let vn = toVarName t
+	cn <- toClassName t
+	return [
+		  "if(this->" ++ vn ++ " != NULL)"
+		, "{"
+		, "\t" ++ cn ++ "::const_iterator i;"
+		, "\tfor("
+		, "\t\ti = this->" ++ vn ++ "->begin();"
+		, "\t\ti != this->" ++ vn ++ "->end();"
+		, "\t\ti++)"
+		, "\t{"
+		, "\t\tif(*i != NULL)"
+		, "\t\t{"
+		, "\t\t\t(*i)->findAll (in, out);"
+		, "\t\t}"
+		, "\t}"
+		, "}"
+		, ""
+		]
+
+addFindAllT :: Symbol Terminal -> Class -> MakeTeaMonad Class
+addFindAllT t@(Terminal _ ctype) cls = do
+	root <- rootSymbol
+	rootCn <- toClassName root
+	rootCnList <- toClassName (Term Nothing root Vector)
+	let decl = ("void", "findAll")
+	let args = [(rootCn ++ "*", "in"), (rootCnList ++ "*", "out")]
+	let findAll = defMethod decl args $ [
+		  "if (this->match (in))"
+		, "\tout->push_back (in);"
+		]
+	return $ cls { 
+		  sections = sections cls ++ [Section [] Public [findAll]]
+		}
+
+
+
