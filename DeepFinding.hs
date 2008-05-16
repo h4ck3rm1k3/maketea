@@ -137,7 +137,7 @@ addFindAllR (Conj _ body) cls = do
 	findAllTerms <- concatMapM (elim findAllTerm) body 
 	let findAll = defMethod decl args $ [
 		  "if (this->match (in))"
-		, "\tout->push_back (in);"
+		, "\tout->push_back (this);"
 		, ""
 		] ++ findAllTerms
 	return $ cls { 
@@ -184,7 +184,7 @@ addFindAllT t@(Terminal _ ctype) cls = do
 	let args = [(rootCn ++ "*", "in"), (rootCnList ++ "*", "out")]
 	let findAll = defMethod decl args $ [
 		  "if (this->match (in))"
-		, "\tout->push_back (in);"
+		, "\tout->push_back (this);"
 		]
 	return $ cls { 
 		  sections = sections cls ++ [Section [] Public [findAll]]
