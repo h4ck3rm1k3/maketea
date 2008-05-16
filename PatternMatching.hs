@@ -248,7 +248,7 @@ wildcardClass = do
 		, "\t\treturn NULL;" -- silence warning
 		, "\t}"
 		, ""
-		, "\tvirtual void findAll(" ++ rootCn ++ "* in, " ++ rootCnList ++ "* out)"
+		, "\tvirtual void find_all(" ++ rootCn ++ "* in, " ++ rootCnList ++ "* out)"
 		, "\t{"
 		, "\t\tassert (0); // I'm not sure what this would mean"
 		, "\t}"

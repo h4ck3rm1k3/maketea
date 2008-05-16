@@ -119,7 +119,7 @@ addFindAllR (Disj _ _) cls = do
 	root <- rootSymbol
 	rootCn <- toClassName root
 	rootCnList <- toClassName (Term Nothing root Vector)
-	let decl = ("void", "findAll")
+	let decl = ("void", "find_all")
 	let args = [(rootCn ++ "*", "in"), (rootCnList ++ "*", "out")]
 	let findAll = PureVirtual [] decl args 
 	return $ cls { 
@@ -129,7 +129,7 @@ addFindAllR (Conj _ body) cls = do
 	root <- rootSymbol
 	rootCn <- toClassName root
 	rootCnList <- toClassName (Term Nothing root Vector)
-	let decl = ("void", "findAll")
+	let decl = ("void", "find_all")
 	let args = [(rootCn ++ "*", "in"), (rootCnList ++ "*", "out")]
 	findAllTerms <- concatMapM (elim findAllTerm) body 
 	let findAll = defMethod decl args $ [
@@ -147,7 +147,7 @@ findAllTerm t@(Marker _ _) = do
 findAllTerm t@(Term _ _ m) | not (isVector m) = do 
 	let vn = toVarName t
 	return [
-		  vn ++ "->findAll(in, out);"
+		  vn ++ "->find_all(in, out);"
 		, ""
 		]
 findAllTerm t@(Term _ _ m) | isVector m = do
@@ -164,7 +164,7 @@ findAllTerm t@(Term _ _ m) | isVector m = do
 		, "\t{"
 		, "\t\tif(*i != NULL)"
 		, "\t\t{"
-		, "\t\t\t(*i)->findAll (in, out);"
+		, "\t\t\t(*i)->find_all (in, out);"
 		, "\t\t}"
 		, "\t}"
 		, "}"
@@ -176,7 +176,7 @@ addFindAllT t@(Terminal _ ctype) cls = do
 	root <- rootSymbol
 	rootCn <- toClassName root
 	rootCnList <- toClassName (Term Nothing root Vector)
-	let decl = ("void", "findAll")
+	let decl = ("void", "find_all")
 	let args = [(rootCn ++ "*", "in"), (rootCnList ++ "*", "out")]
 	let findAll = defMethod decl args $ [
 		  "if (this->match (in))"
