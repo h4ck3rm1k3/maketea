@@ -65,8 +65,11 @@ findTerm t@(Term _ _ m) | not (isVector m) = do
 	root <- rootSymbol
 	rootCn <- toClassName root
 	return [
-		  rootCn ++ "* " ++ vn ++ "_res = " ++ vn ++ "->find(in);"
-		, "if (" ++ vn ++ "_res) return " ++ vn ++ "_res;"
+		  "if (this->" ++ vn ++ " != NULL)"
+		, "{"
+		, "\t" ++ rootCn ++ "* " ++ vn ++ "_res = this->" ++ vn ++ "->find(in);"
+		, "\tif (" ++ vn ++ "_res) return " ++ vn ++ "_res;"
+		, "}"
 		, ""
 		]
 findTerm t@(Term _ _ m) | isVector m = do
@@ -147,7 +150,8 @@ findAllTerm t@(Marker _ _) = do
 findAllTerm t@(Term _ _ m) | not (isVector m) = do 
 	let vn = toVarName t
 	return [
-		  vn ++ "->find_all(in, out);"
+		  "if (this->" ++ vn ++ " != NULL)"
+		, "\tthis->" ++ vn ++ "->find_all(in, out);"
 		, ""
 		]
 findAllTerm t@(Term _ _ m) | isVector m = do
