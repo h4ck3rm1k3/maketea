@@ -220,7 +220,7 @@ body1 =
 declP :: Parser (Decl a)
 declP = 
 	do
-		xs <- many1 (lexeme (many1 (alphaNum <|> oneOf ['*','<','>','_'])))
+		xs <- many1 (lexeme (many1 (alphaNum <|> oneOf ['*','<','>','_']) <|> string "::"))
 		return (f (init xs), last xs)
 	where
 		f [] = ""
