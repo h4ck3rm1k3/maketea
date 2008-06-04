@@ -11,6 +11,7 @@ import Util
 import DataStructures
 import MakeTeaMonad
 import Cpp
+import List
 
 param :: ToClassName a => a -> MakeTeaMonad String 
 param sym = ("_" ++) `fmap` toClassName sym
@@ -25,7 +26,7 @@ foldClass = do
 	return $ unlines 
 		[
 		  "template"
-		, "<" ++ (flattenWith ",\n " $ map ("class " ++) templateParams) ++ ">"
+		, "<" ++ (flattenWith ",\n " $ map ("class " ++) (sort templateParams)) ++ ">"
 		, "class Fold"
 		, "{"
 		, "// Recursively fold the children before folding the parent"
