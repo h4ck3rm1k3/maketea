@@ -48,6 +48,7 @@ configP =
 			, stringClass = "string"
 			, namespace = Nothing 
 			, rootName = "Node"
+			, noneName = "None"
 			, noSourceRep = False
 			}
 
@@ -101,6 +102,12 @@ settingP =
 			<|>
 			do
 				reserved "root"
+				id <- stringLiteral
+				reservedOp ";"
+				return (\c -> c { rootName = id })
+			<|>
+			do
+				reserved "none"
 				id <- stringLiteral
 				reservedOp ";"
 				return (\c -> c { rootName = id })

@@ -16,7 +16,8 @@ createBasicClasses :: MakeTeaMonad ()
 createBasicClasses = do
 	ast_classes <- withGrammar (mapM (elim createClass))
 	token_classes <- withTokens (mapM createTokenClass)
-	setClasses (ast_classes ++ token_classes) 
+	none_class <- createNoneClass
+	setClasses (ast_classes ++ token_classes ++ [none_class])
 
 createClass :: Rule a -> MakeTeaMonad Class
 createClass r@(Disj c _) = do
@@ -48,6 +49,41 @@ createClass r@(Conj c body) = do
 		, sections = [fieldS, tvS] ++ sections c 
 		, origin = Just (Left (Exists r))
 		}
+
+createNoneClass :: MakeTeaMonad Class
+createNoneClass = do
+	name <- getNoneName 
+	c <- emptyClass name
+
+	-- Overwrite all expected methods
+	stringClass <- getStringClass
+	rc <- getRootName
+	root <- rootSymbol
+	let rootName = rc ++ "*"
+	rootCnList <- toClassName (Term Nothing root Vector)
+
+	let rootName = rc ++ "*"
+	let visit = defMethod ("void", "visit") [("Visitor*", "visitor")] ["assert (0);"]
+	let transform = defMethod ("void", "transform_children") [("Transform*", "transform")] ["assert (0);"]
+	let clone = defMethod (name ++ "*", "clone") [] ["assert (0);"]
+	let valid = defMethod ("void", "assert_valid") [] ["assert (0);"]
+	let get_value_as_string = defMethod (stringClass ++ "*", "get_value_as_string") [] ["assert (0);"]
+	let classid = defMethod ("int", "classid") [] ["assert (0);"]
+	let match = defMethod ("bool", "match") [(rootName, "in")] ["assert (0);"]
+	let equals = defMethod ("bool", "equals") [(rootName, "in")] ["assert (0);"]
+	let find = defMethod (rootName, "find") [(rootName, "in")] ["assert (0);"]
+	let find_all = defMethod ("void", "find_all") [(rootName, "in"), (rootCnList ++ "*", "out")] ["assert (0);"]
+
+	let methods = Section [] Public [visit, transform, clone, valid, get_value_as_string, classid, match, equals, find, find_all]
+
+	-- Inherit from all classes
+	syms <- withSymbols $ mapM toClassName 
+	return $ c {
+			  extends = syms
+			, comment = ["The top of the class hierarchy. If the Fold will not allow you fold to anything else, try this."]
+			, sections = [methods]
+			, origin = Nothing
+	}
 
 visitTransformSection :: Some Symbol -> MakeTeaMonad Section
 visitTransformSection s = do

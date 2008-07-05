@@ -99,6 +99,12 @@ getNamespace = withConfig $ return . namespace
 getNoSourceRep :: MakeTeaMonad Bool
 getNoSourceRep = withConfig $ return . noSourceRep
 
+getRootName :: MakeTeaMonad String 
+getRootName = withConfig $ return . rootName
+
+getNoneName :: MakeTeaMonad String 
+getNoneName = withConfig $ return . noneName
+
 {-
  - Initial state for the monad
  -}
@@ -412,6 +418,14 @@ allLists =
 
 rootSymbol :: MakeTeaMonad (Some Symbol)
 rootSymbol = withConfig $ \c -> return (Exists (NonTerminal (rootName c)))
+
+{-
+ - Top of the inheritance graph
+ -}
+
+noneSymbol :: MakeTeaMonad (Some Symbol)
+noneSymbol = withConfig $ \c -> return (Exists (NonTerminal (noneName c)))
+
 
 {-
  - Find the name of stuff
