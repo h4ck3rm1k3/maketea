@@ -23,15 +23,18 @@ foldClass = do
 	tokenFolds <- withTokens $ mapM tokenFold
 	recFolds <- withConj $ concatMapM recFold
 	dispatchers <- withDisj $ concatMapM dispatcher
+	list <- getListClass
 	return $ unlines 
 		[
 		  "template"
-		, "<" ++ (flattenWith ",\n " $ map ("class " ++) (sort templateParams)) ++ ">"
+		, "<" ++ (flattenWith ",\n " $ map ("class " ++) (sort templateParams)) ++ ","
+		, " template <class _Tp, class _Alloc = allocator<_Tp> > class _" ++ list ++ " = " ++ list
+		, ">"
 		, "class Fold"
 		, "{"
 		, "// Access this class from subclasses without copying out the template instantiation"
 		, "public:"
-		, "   typedef Fold<" ++ (flattenWith ", " (sort templateParams)) ++ "> parent;"
+		, "   typedef Fold<" ++ (flattenWith ", " (sort templateParams)) ++ ", _" ++ list ++ "> parent;"
 		, "// Recursively fold the children before folding the parent"
 		, "// This methods form the client API for a fold, but should not be"
 		, "// overridden unless you know what you are doing"
@@ -52,8 +55,8 @@ foldClass = do
 		, "\tvirtual ~Fold() {}" 
 		, "};"
 		, ""
-		, "template<class T>"
-		, "class Uniform_fold : public Fold<" ++ flattenComma (replicate (length templateParams) "T") ++ "> {};"
+		, "template<class T, template <class _Tp, class _Alloc = allocator<_Tp> > class _" ++ list ++ ">"
+		, "class Uniform_fold : public Fold<" ++ flattenComma (replicate (length templateParams) "T") ++ ", _" ++ list ++ "> {};"
 		]
 
 concreteFold :: Rule Conj -> MakeTeaMonad String
@@ -136,7 +139,7 @@ recCall t@(Term lab sym mult) | isVector mult = do
 		, if mult == OptVector then "if (in->" ++ vn ++ ")" else ""
 		, "\t{"
 		, "\t\t" ++ vn ++ " = new " ++ param ++ ";"
-		, "\t\t" ++ cn ++ "::const_iterator i;"
+		, "\t\ttypename _" ++ cn ++ "::const_iterator i;" -- Use _List, not List.
 		, "\t\tfor(i = in->" ++ vn ++ "->begin(); i != in->" ++ vn ++ "->end(); i++)"
 		, "\t\t\tif(*i != NULL) " ++ vn ++ "->push_back(fold_" ++ toVarName t' ++ "(*i));" 
 		, "\t\t\telse " ++ vn ++ "->push_back(0);" 
@@ -147,9 +150,9 @@ recCall m@(Marker _ _) = do
 
 termToParam :: String -> Term a -> MakeTeaMonad String
 termToParam listSuffix t@(Term lab sym mult) = do
-	list <- getListClass
 	tp <- param (Term lab sym Single)
+	list <- getListClass
 	return $ if isVector mult 
-		then list ++ "<" ++ tp ++ ">" ++ listSuffix
+		then "_" ++ list ++ "<" ++ tp ++ ">" ++ listSuffix
 		else tp
 termToParam _ m@(Marker _ _) = return "bool" 
