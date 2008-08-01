@@ -83,6 +83,7 @@ runMakeTea config grammar includes mixinCode = do
 		commonHeader = unlines $ includes ++ [
 			  "#include <list>"
 			, "#include <string>"
+			, "#include <cstring>"
 			, "#include <assert.h>"
 			, "using namespace std;"
 			, ""
