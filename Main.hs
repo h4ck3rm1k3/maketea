@@ -76,10 +76,11 @@ runMakeTea config grammar includes mixinCode = do
 			fold			<- foldClass
 			wildcard		<- wildcardClass
 			factory		<- factoryMethod
-			return (outputDir, prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory)
+			list			<- getListClass
+			return (outputDir, prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory, list)
 		init = initState config grammar mixinCode
 		runMaketea = evalState maketea init
-		(outputDir, prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory) = runMaketea
+		(outputDir, prefix, namespace, contexts, classes, transform, visitor, fold, wildcard, factory, list) = runMaketea
 		commonHeader = unlines $ includes ++ [
 			  "#include <list>"
 			, "#include <string>"
@@ -118,6 +119,7 @@ runMakeTea config grammar includes mixinCode = do
 		, commonHeader
 		] ++ (addNamespace $ unlines [
 		  unlines (map (\c -> "class " ++ c ++ ";") (map name classes))
+		, unlines (map (\c -> "typedef " ++ list ++ "<" ++ c ++ "*> " ++ c ++ "_list;") (map name classes))
 		, "class Transform;"
 		, "class Visitor;"
 		, ""

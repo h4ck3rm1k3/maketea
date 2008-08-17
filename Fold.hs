@@ -130,7 +130,7 @@ recCall t@(Term lab sym mult) | not (isVector mult) = do
 recCall t@(Term lab sym mult) | isVector mult = do
 	let t' = Term Nothing sym Single 
 	param <- termToParam "" t
-	cn <- toClassName t
+	cn <- toClassName sym
 	let vn = toVarName t
 	return 
 		[
@@ -139,7 +139,7 @@ recCall t@(Term lab sym mult) | isVector mult = do
 		, if mult == OptVector then "if (in->" ++ vn ++ ")" else ""
 		, "\t{"
 		, "\t\t" ++ vn ++ " = new " ++ param ++ ";"
-		, "\t\ttypename _" ++ cn ++ "::const_iterator i;" -- Use _List, not List.
+		, "\t\ttypename _List<" ++ cn ++ "*>::const_iterator i;" -- Use _List, not List.
 		, "\t\tfor(i = in->" ++ vn ++ "->begin(); i != in->" ++ vn ++ "->end(); i++)"
 		, "\t\t\tif(*i != NULL) " ++ vn ++ "->push_back(fold_" ++ toVarName t' ++ "(*i));" 
 		, "\t\t\telse " ++ vn ++ "->push_back(0);" 

@@ -131,8 +131,7 @@ termToClassName (Term _ s m) = do
 	cn <- elim symbolToClassName s
 	if isVector m 
 		then do
-			list <- getListClass
-			return (list ++ "<" ++ cn ++ "*>")
+			return (cn ++ "_list")
 		else return cn
 
 {-
