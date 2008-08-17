@@ -181,10 +181,10 @@ ppAbstract pp nt =
 		cn <- toClassName s'
 		let inType = cn ++ "*"
 		conc <- concreteInstances (NonTerminal nt)
+		ot <- toClassName (Term Nothing s' m)
+		let outType = ot ++ "*"
 		if isVector m 
 			then do
-				list <- getListClass
-				let outType = list ++ "<" ++ cn ++ "*>*"
 				let decl = ("void", fnName)
 				let args = [(inType, "in"), (outType, "out")]
 				cases <- concatMapM listCase conc	
@@ -196,7 +196,6 @@ ppAbstract pp nt =
 					]
 				return $ defMethod decl args body 
 			else do
-				let outType = cn ++ "*"
 				let decl = (outType, fnName)
 				let args = [(inType, "in")]
 				cases <- concatMapM nonListCase conc	
@@ -292,15 +291,14 @@ ppConcrete pp s = do
 	cn <- toClassName s
 	cn' <- toClassName s'
 	let inType = cn ++ "*"
+	ot <- toClassName (Term Nothing s' m)
+	let outType = ot ++ "*"
 	if isVector m 
 		then do
-			list <- getListClass
-			let outType = list ++ "<" ++ cn' ++ "*>*"
 			let decl = ("void", fnName)
 			let args = [(inType, "in"), (outType, "out")]
 			return $ defMethod decl args ["out->push_back(in);"]
 		else do
-			let outType = cn' ++ "*"
 			let decl = (outType, fnName)
 			let args = [(inType, "in")]
 			return $ defMethod decl args ["return in;"]
