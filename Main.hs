@@ -42,7 +42,7 @@ main = do
 	parseResult <- parseFromFile maketeaP filename
 	case parseResult of 
 		Left parseError -> do
-			print parseError
+			error (show parseError)
 		Right (config, grammar, includes, mixin) -> 
 			runMakeTea config grammar includes mixin
 
