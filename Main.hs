@@ -85,8 +85,7 @@ runMakeTea config grammar includes mixinCode = do
 			  "#include <list>"
 			, "#include <string>"
 			, "#include <cstring>"
-			, "#include <assert.h>"
-			, "using namespace std;"
+			, "#include <cassert>"
 			, ""
 			]
 		addNamespace = case namespace of
