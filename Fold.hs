@@ -28,7 +28,7 @@ foldClass = do
 		[
 		  "template"
 		, "<" ++ (flattenWith ",\n " $ map ("class " ++) (sort templateParams)) ++ ","
-		, " template <class _Tp, class _Alloc = std::allocator<_Tp> > class _" ++ list ++ " = " ++ list
+		, " template <typename _Tp, typename _Alloc = typename List<_Tp>::allocator_type> class _" ++ list ++ " = " ++ list
 		, ">"
 		, "class Fold"
 		, "{"
@@ -55,7 +55,7 @@ foldClass = do
 		, "\tvirtual ~Fold() {}" 
 		, "};"
 		, ""
-		, "template<class T, template <class _Tp, class _Alloc = std::allocator<_Tp> > class _" ++ list ++ ">"
+		, "template<class T, template <class _Tp, class _Alloc = typename List<_Tp>::allocator_type> class _" ++ list ++ ">"
 		, "class Uniform_fold : public Fold<" ++ flattenComma (replicate (length templateParams) "T") ++ ", _" ++ list ++ "> {};"
 		]
 
