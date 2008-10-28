@@ -91,6 +91,9 @@ runMakeTea config grammar includes mixinCode = do
 		addNamespace = case namespace of
 			Nothing   -> id
 			Just name -> \body -> "namespace " ++ name ++ "{\n" ++ body ++ "}\n"
+		prefixNamespace = case namespace of
+			Nothing   -> id
+			Just name -> \body -> name ++ "::" ++ body
 		writeClass name cl = do 
 			writeFile (outputDir ++ "/" ++ prefix ++ "_" ++ name ++ ".h") $ unlines [
 			      "#ifndef _" ++ prefix ++ "_" ++ strToUpper name ++ "_H_"
@@ -143,3 +146,20 @@ runMakeTea config grammar includes mixinCode = do
 		, "#include \"" ++ prefix ++ ".h\""
 		, addNamespace $ fold 
 		]
+	writeFile (outputDir ++ "/" ++ prefix ++ "_user_defined.h") $ unlines [
+		  "#ifndef _" ++ prefix ++ "_USER_DEFINED_H_"
+		, "#define _" ++ prefix ++ "_USER_DEFINED_H_"
+		, ""
+		, "#ifndef MAKETEA_USER_DEFINED"
+		, "#error \"MAKETEA_USER_DEFINED macro undefined\""
+		, "#endif"
+		, ""
+		] ++ (addNamespace $ unlines [
+		  unlines (map (\c -> "class " ++ c ++ ";") (map name classes))
+		]) ++ unlines [
+		  ""
+		, unlines (map (\c -> "MAKETEA_USER_DEFINED(" ++ prefixNamespace c ++ ")") (map name classes))
+		,  ""
+		, "#endif"
+		]
+
