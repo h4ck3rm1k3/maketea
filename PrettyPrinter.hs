@@ -104,7 +104,7 @@ docStatic Static = text "static "
 docStatic NonStatic = text ""
 
 docCmnt :: Comment -> Doc 
-docCmnt = vcat . map (\c -> text "//" <+> text c)
+docCmnt = vcat . map (\c -> text "/*" <+> text c <+> text "*/")
 
 docAccess :: Access -> Doc
 docAccess Private = text "private"
