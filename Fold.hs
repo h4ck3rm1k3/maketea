@@ -63,7 +63,7 @@ concreteFold :: Rule Conj -> MakeTeaMonad String
 concreteFold (Conj head body) = do
 	returnType <- param head
 	cn <- toClassName head
-	let fnName = toVarName head
+	let fnName = toFuncPart head
 	args <- forM body $ \term -> do
 		argType <- elim (termToParam "*") term
 		let argName = toVarName term
@@ -74,21 +74,21 @@ tokenFold :: Symbol Terminal -> MakeTeaMonad String
 tokenFold sym = do
 	returnType <- param sym 
 	cn <- toClassName sym
-	let fnName = toVarName sym 
+	let fnName = toFuncPart sym 
 	return $ "virtual " ++ returnType ++ " fold_" ++ fnName ++ "(" ++ cn ++ "* orig) { assert(0); };"
 
 dispatcher :: Rule Disj -> MakeTeaMonad [String]
 dispatcher (Disj head _) = do
 	returnType <- param head
 	cn <- toClassName head
-	let fnName = toVarName head
+	let fnName = toFuncPart head
 	conc <- concreteInstances head 
 	body <- forM conc $ \term -> do
 		cn <- toClassName term
-		let vn = toVarName term
+		let fn = toFuncPart term
 		return [
 			  "\t\tcase " ++ cn ++ "::ID:"
-			, "\t\t\treturn fold_" ++ vn ++ "(dynamic_cast<" ++ cn ++ "*>(in));" 
+			, "\t\t\treturn fold_" ++ fn ++ "(dynamic_cast<" ++ cn ++ "*>(in));" 
 			]
 	return $ 
 		[ "virtual " ++ returnType ++ " fold_" ++ fnName ++ "(" ++ cn ++ "* in)"
@@ -105,7 +105,7 @@ recFold :: Rule Conj -> MakeTeaMonad [String]
 recFold (Conj head body) = do 
 	cn <- toClassName head
 	returnType <- param head
-	let fnName = toVarName head
+	let fnName = toFuncPart head
 	    vars = map toVarName body	
 	recs <- forM body (elim recCall) 
 	return $ 
@@ -125,7 +125,7 @@ recCall t@(Term lab sym mult) | not (isVector mult) = do
 		[ 
 		  -- TODO: returning "0" for NULL values isn't completely satisfactory
 		  "\t" ++ cn ++ " " ++ vn ++ " = 0;"
-		, "\tif(in->" ++ vn ++ " != NULL) " ++ vn ++ " = fold_" ++ toVarName t' ++ "(in->" ++ vn ++ ");"
+		, "\tif(in->" ++ vn ++ " != NULL) " ++ vn ++ " = fold_" ++ toFuncPart t' ++ "(in->" ++ vn ++ ");"
 		] 
 recCall t@(Term lab sym mult) | isVector mult = do
 	let t' = Term Nothing sym Single 
@@ -141,7 +141,7 @@ recCall t@(Term lab sym mult) | isVector mult = do
 		, "\t\t" ++ vn ++ " = new " ++ param ++ ";"
 		, "\t\ttypename _List<" ++ cn ++ "*>::const_iterator i;" -- Use _List, not List.
 		, "\t\tfor(i = in->" ++ vn ++ "->begin(); i != in->" ++ vn ++ "->end(); i++)"
-		, "\t\t\tif(*i != NULL) " ++ vn ++ "->push_back(fold_" ++ toVarName t' ++ "(*i));" 
+		, "\t\t\tif(*i != NULL) " ++ vn ++ "->push_back(fold_" ++ toFuncPart t' ++ "(*i));" 
 		, "\t\t\telse " ++ vn ++ "->push_back(0);" 
 		, "\t}"
 		]

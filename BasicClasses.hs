@@ -89,8 +89,8 @@ visitTransformSection :: Some Symbol -> MakeTeaMonad Section
 visitTransformSection s = do
 	-- Any of the original contexts will do
 	(_,s',_):_ <- findOrigContexts s 
-	let visit = defMethod ("void", "visit") [("Visitor*", "visitor")] ["visitor->visit_" ++ toVarName s' ++ "(this);"]
-	let trCh = defMethod ("void", "transform_children") [("Transform*", "transform")] ["transform->children_" ++ toVarName s' ++ "(this);"]
+	let visit = defMethod ("void", "visit") [("Visitor*", "visitor")] ["visitor->visit_" ++ toFuncPart s' ++ "(this);"]
+	let trCh = defMethod ("void", "transform_children") [("Transform*", "transform")] ["transform->children_" ++ toFuncPart s' ++ "(this);"]
 	return $ Section [] Public [visit, trCh]
 
 createFieldDecl :: Term a -> MakeTeaMonad (Decl Variable) 

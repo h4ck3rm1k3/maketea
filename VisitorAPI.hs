@@ -90,7 +90,7 @@ visit t@(Term _ s m) | isVector m = do
 		, ""
 		, "\tfor(i = in->begin(); i != in->end(); i++)"
 		, "\t{"
-		, "\t\tvisit_" ++ toVarName s ++ "(*i);"
+		, "\t\tvisit_" ++ toFuncPart s ++ "(*i);"
 		, "\t}"
 		, ""
 		, "\tpost_list(\"" ++ ns' ++ "\", \"" ++ cn' ++ "\", in->size());"
@@ -101,9 +101,9 @@ visit t@(Term _ s m) | isVector m = do
 		, "\tvisit_null(\"" ++ ns' ++ "\", \"" ++ cn' ++ "\");"
 		, "else"
 		, "{"
-		, "\tpre_" ++ toVarName s ++ "_chain(in);"
-		, "\tchildren_" ++ toVarName s ++ "(in);"
-		, "\tpost_" ++ toVarName s ++ "_chain(in);"
+		, "\tpre_" ++ toFuncPart s ++ "_chain(in);"
+		, "\tchildren_" ++ toFuncPart s ++ "(in);"
+		, "\tpost_" ++ toFuncPart s ++ "_chain(in);"
 		, "}"
 		]
 	-- If the context m' is Single, that means that there must be an explicit
@@ -127,9 +127,9 @@ visit t@(Term _ s m) | not (isVector m) = do
 		, "\tvisit_null(\"" ++ ns' ++ "\", \"" ++ cn ++ "\");"
 		, "else"
 		, "{"
-		, "\tpre_" ++ toVarName s ++ "_chain(in);"
-		, "\tchildren_" ++ toVarName s ++ "(in);"
-		, "\tpost_" ++ toVarName s ++ "_chain(in);"
+		, "\tpre_" ++ toFuncPart s ++ "_chain(in);"
+		, "\tchildren_" ++ toFuncPart s ++ "(in);"
+		, "\tpost_" ++ toFuncPart s ++ "_chain(in);"
 		, "}"
 		]
 	return $ [defMethod decl args body]
@@ -138,7 +138,7 @@ dispatcher :: String -> String -> Name NonTerminal -> MakeTeaMonad Member
 dispatcher pre post nt = 
 	do 
 		cn <- toClassName (NonTerminal nt)
-		let decl = ("void", pre ++ toVarName (NonTerminal nt) ++ post)
+		let decl = ("void", pre ++ toFuncPart (NonTerminal nt) ++ post)
 		let args = [(cn ++ "*", "in")]
 		conc <- concreteInstances (NonTerminal nt)
 		cases <- concatMapM switchcase conc	
@@ -150,7 +150,7 @@ dispatcher pre post nt =
 			cn <- toClassName s
 			return [
 				  "case " ++ cn ++ "::ID:"
-				, "\t" ++ pre ++ toVarName s ++ post ++ "(dynamic_cast<" ++ cn ++ "*>(in));"
+				, "\t" ++ pre ++ toFuncPart s ++ post ++ "(dynamic_cast<" ++ cn ++ "*>(in));"
 				, "\tbreak;"
 				]
 
@@ -161,14 +161,14 @@ dispatcher pre post nt =
 prepost :: String -> Symbol a -> MakeTeaMonad Member
 prepost pp s = do
 	cn <- toClassName s
-	let decl = ("void", pp ++ toVarName s)
+	let decl = ("void", pp ++ toFuncPart s)
 	let args = [(cn ++ "*", "in")] 
 	return $ defMethod decl args [] 
 
 chPublic :: Rule Conj -> MakeTeaMonad Member
 chPublic (Conj nt body) = do
 	cn <- toClassName nt 
-	let decl = ("void", "children_" ++ toVarName nt)
+	let decl = ("void", "children_" ++ toFuncPart nt)
 	let args = [(cn ++ "*", "in")]
 	let 
 		f :: Term a -> String
@@ -179,14 +179,14 @@ chPublic (Conj nt body) = do
 chToken :: Symbol Terminal -> MakeTeaMonad Member
 chToken t@(Terminal n _) = do
 	cn <- toClassName t
-	let decl = ("void", "children_" ++ toVarName t)
+	let decl = ("void", "children_" ++ toFuncPart t)
 	let args = [(cn ++ "*", "in")]
 	return (defMethod decl args [])
 
 termToVisitor :: Term NonMarker -> Name Method
 termToVisitor (Term _ s m) 
-	| isVector m = "visit_" ++ toVarName s ++ "_list"
-	| otherwise = "visit_" ++ toVarName s
+	| isVector m = "visit_" ++ toFuncPart s ++ "_list"
+	| otherwise = "visit_" ++ toFuncPart s
 
 ppChain :: String -> Bool -> Some Symbol -> MakeTeaMonad Member
 ppChain pp rev s = do
@@ -195,12 +195,12 @@ ppChain pp rev s = do
 	sc <- allSuperclasses [s]
 	let sc_ordered 
 		= (if rev then reverse else id) $ filter (`elem` sc) top
-	let decl = ("void", pp ++ toVarName s ++ "_chain")
+	let decl = ("void", pp ++ toFuncPart s ++ "_chain")
 	let args = [(cn ++ "*", "in")]
 	body <- forM sc_ordered $ \s -> do 
-		let vn = toVarName s
+		let fn = toFuncPart s
 		cn <- toClassName s
-		return $ pp ++ vn ++ "((" ++ cn ++ "*) in);"
+		return $ pp ++ fn ++ "((" ++ cn ++ "*) in);"
 	return $ defMethod decl args body 
 
 preChain = ppChain "pre_" False

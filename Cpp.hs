@@ -161,9 +161,54 @@ termToVarName (Term (Just n) _ _) = n
 termToVarName (Marker Nothing m) = "is_" ++ m
 termToVarName (Marker (Just n) _) = n
 
+checkForKeywords :: String -> String
+checkForKeywords n =
+	let keywords = ["int", "long", "bool", "double", "string", "char"] -- TODO: there's no shortage of C++ keywords
+	in 
+		if (elem n keywords) then checkForKeywords ("_" ++ n)
+		else n
+
+
 symbolToVarName :: Symbol a -> Name Variable 
-symbolToVarName (NonTerminal n) = map toLower n
-symbolToVarName (Terminal n _) = map toLower n
+symbolToVarName (NonTerminal n) = checkForKeywords (map toLower n)
+symbolToVarName (Terminal n _) = checkForKeywords (map toLower n)
+
+{-
+ - For use as part of a function/method name (different from toVarName since we
+ - don't need to worry about keywords.
+ -}
+class ToFuncPart a where
+	toFuncPart :: a -> Name Variable 
+
+instance ToFuncPart (Term a) where
+	toFuncPart = termToFuncPart
+
+instance ToFuncPart (Some Term) where
+	toFuncPart = elim termToFuncPart
+
+instance ToFuncPart (Symbol a) where
+	toFuncPart = symbolToFuncPart
+
+instance ToFuncPart (Some Symbol) where
+	toFuncPart = elim symbolToFuncPart
+
+-- TODO: some of these should be errors
+termToFuncPart :: Term a -> Name Variable 
+termToFuncPart (Term Nothing s m) 
+--	| isVector m = toFuncPart s ++ "s" 
+	| isVector m = error "Not allowed"
+	| otherwise = toFuncPart s
+termToFuncPart (Term (Just n) _ _) = n
+--termToFuncPart (Marker Nothing m) = "is_" ++ m
+termToFuncPart (Marker Nothing m) = error "Not allowed"
+termToFuncPart (Marker (Just n) _) = n
+
+symbolToFuncPart :: Symbol a -> Name Variable 
+symbolToFuncPart (NonTerminal n) = map toLower n
+symbolToFuncPart (Terminal n _) = map toLower n
+
+
+
 
 mapMembers :: Monad m => (Member -> m Member) -> Class -> m Class
 mapMembers f cls = 
