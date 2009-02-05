@@ -124,6 +124,8 @@ docMember cn (Method cmnt _ _ (ret,name) args body) =
 	docDecl (ret, cn ++ "::" ++ name) 
 	<> parens (commaSep (map docDecl args))
 	$+$ text "{" $+$ nest 4 (docBody body) $+$ text "}" $+$ text ""
+docMember cn (StaticConst cmnt (t, name) _) = 
+	text ("const " ++ t ++ " " ++ cn ++ "::" ++ name ++ ";")
 docMember cn _ = empty 
 
 docBody :: Body -> Doc
