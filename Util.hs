@@ -15,7 +15,7 @@ import Debug.Trace
  -}
 
 data Some :: (* -> *) -> * where
-	Exists :: forall a. t a -> Some t 
+	Exists :: forall t. (forall a. t a -> Some t)
 
 elim :: (forall a. t a -> b) -> Some t -> b
 elim f (Exists t) = f t
