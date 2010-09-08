@@ -15,4 +15,4 @@ cleanall: clean
 
 # TODO: clean is important to avoid the 'module 'x' is not interpreted' error.
 tags: clean
-	ghci -fglasgow-exts *.hs -e :ctags
+	ghc -fglasgow-exts *.hs -e :ctags
