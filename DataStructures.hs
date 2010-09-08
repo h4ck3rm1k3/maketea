@@ -137,5 +137,4 @@ data Config = Config {
 	, namespace :: Maybe String 
 	, rootName :: String
 	, noneName :: String
-	, noSourceRep :: Bool
 	}

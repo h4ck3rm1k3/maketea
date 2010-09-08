@@ -49,7 +49,6 @@ configP =
 			, namespace = Nothing 
 			, rootName = "Node"
 			, noneName = "None"
-			, noSourceRep = False
 			}
 
 settingP :: Parser (Config -> Config)
@@ -72,12 +71,6 @@ settingP =
 		od <- stringLiteral
 		reservedOp ";"
 		return (\c -> c { outputDir = od })
-	<|>
-	do
-		reserved "no";
-		reserved "source_rep";
-		reservedOp ";"
-		return (\c -> c { noSourceRep = True })
 	<|>
 	do
 		reserved "use"

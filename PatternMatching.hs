@@ -122,32 +122,18 @@ addMatchT t@(Terminal _ ctype) cls = do
 		, "else"
 		, "\treturn true;"
 		]
-	noSourceRep <- getNoSourceRep
-	let match = case (ctype, noSourceRep) of
-		(Nothing, _) -> defMethod decl args (
+	let match = case (ctype) of
+		(Nothing) -> defMethod decl args (
 			   matchHeader 
 			++ matchBody "value"
 			)
-		(Just "", False) -> defMethod decl args (
-			   matchHeader 
-			++ matchBody "source_rep"
-			)
-		(Just "", True) -> defMethod decl args (
+		(Just "") -> defMethod decl args (
 			   matchHeader
 			++ [
 				"return true;"
 			]
 			)
-		(Just _, False) -> defMethod decl args (
-			   matchHeader
-			++ [
-			  "if(!match_value(that))"
-			, "\treturn false;"
-			, ""
-			]
-			++ matchBody "source_rep"
-			)
-		(Just _, True) -> defMethod decl args (
+		(Just _) -> defMethod decl args (
 			   matchHeader
 			++ [
 			  "if(!match_value(that))"

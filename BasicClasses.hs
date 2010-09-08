@@ -113,16 +113,11 @@ createTokenClass t@(Terminal n ctype) = do
 	c <- emptyClass cn
 	let val t = Attribute [] (t, "value")
 	string <- getStringClass
-	let source_rep = Attribute [] (string ++ "*", "source_rep")
 	let getv = defMethod (string ++ "*", "get_value_as_string") [] ["return value;"]
-	let getsr = defMethod (string ++ "*", "get_source_rep") [] ["return source_rep;"]
-	noSourceRep <- getNoSourceRep
-	let fields = case (ctype, noSourceRep) of
-		(Nothing, _)     -> [val (string ++ "*"),getv]
-		(Just "", False) -> [source_rep, getsr]
-		(Just "", True)  -> []
-		(Just t, False)  -> [val t, source_rep,getsr]
-		(Just t, True)   -> [val t]
+	let fields = case (ctype) of
+		(Nothing)     -> [val (string ++ "*"),getv]
+		(Just "")  -> []
+		(Just t)   -> [val t]
 	let fieldS = Section [] Public fields
 	tvS <- visitTransformSection (Exists t) 
 	return $ c {
